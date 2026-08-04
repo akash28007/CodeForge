@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+}
+
+model User {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  password     String
+  role         Role         @default(USER)
+  createdAt    DateTime     @default(now())
+  problems     Problem[]    @relation("CreatedProblems")
+  submissions  Submission[]
+}
+
+model Problem {
+  id            String       @id @default(uuid())
+  title         String
+  difficulty    Difficulty
+  statement     String
+  constraints   String
+  inputFormat   String
+  outputFormat  String
+  sampleInput   String
+  sampleOutput  String
+  timeLimit     Int          // ms
+  memoryLimit   Int          // MB
+  createdById   String
+  createdBy     User         @relation("CreatedProblems", fields: [createdById], references: [id])
+  testCases     TestCase[]
+  tags          ProblemTag[]
+  submissions   Submission[]
+}
+
+model TestCase {
+  id             String  @id @default(uuid())
+  problemId      String
+  problem        Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input          String
+  expectedOutput String
+  isHidden       Boolean @default(true)
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  problemId   String
+  problem     Problem          @relation(fields: [problemId], references: [id])
+  language    String           @default("cpp")
+  code        String
+  status       SubmissionStatus @default(PENDING)
+  runtime      Int?             // ms
+  memory       Int?             // KB, not yet measured — see Milestone 7 notes
+  errorMessage String?          // compile error text, or a wrong-answer/runtime-error detail
+  passedCount  Int?             // test cases passed before the verdict was decided
+  totalCount   Int?             // total test cases the problem has
+  submittedAt  DateTime         @default(now())
+}
+
+model Tag {
+  id       String       @id @default(uuid())
+  name     String       @unique
+  problems ProblemTag[]
+}
+
+model ProblemTag {
+  problemId String
+  tagId     String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, tagId])
+}
