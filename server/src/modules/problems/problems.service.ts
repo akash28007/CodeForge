@@ -358,13 +358,29 @@ export class ProblemsService {
       and.push({ difficulty: { in: query.difficulty } });
     }
 
-    if (query.status?.length && userId) {
+    if (query.status?.length) {
       const statusOr: Prisma.ProblemWhereInput[] = [];
-      const solvedFilter = { submissions: { some: { userId, status: SubmissionStatus.ACCEPTED } } };
 
-      if (query.status.includes('solved')) statusOr.push(solvedFilter);
-      if (query.status.includes('unsolved')) statusOr.push({ NOT: solvedFilter });
-      if (query.status.includes('bookmarked')) statusOr.push({ bookmarks: { some: { userId } } });
+      if (userId) {
+        const solvedFilter = { submissions: { some: { userId, status: SubmissionStatus.ACCEPTED } } };
+        if (query.status.includes('solved')) statusOr.push(solvedFilter);
+        if (query.status.includes('unsolved')) statusOr.push({ NOT: solvedFilter });
+        if (query.status.includes('bookmarked')) statusOr.push({ bookmarks: { some: { userId } } });
+      } else {
+        /*
+         * Signed out, these filters are still *applied*, not ignored. Dropping the
+         * clause would answer "which problems have I bookmarked?" with the entire
+         * catalogue, and a filter that widens the result set is the more surprising
+         * failure. With no user: nothing is solved and nothing is bookmarked, so
+         * those match nothing — and everything is therefore unsolved.
+         */
+        if (query.status.includes('unsolved')) statusOr.push({});
+        if (query.status.includes('solved') || query.status.includes('bookmarked')) {
+          // Only reached when `unsolved` was not also requested, in which case the
+          // empty-set clause below is redundant but harmless.
+          statusOr.push({ id: { in: [] } });
+        }
+      }
 
       if (statusOr.length) and.push({ OR: statusOr });
     }

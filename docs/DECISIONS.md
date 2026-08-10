@@ -344,6 +344,58 @@ existing database.
 
 ---
 
+## Step 13 — Responsive & accessibility
+
+**The light theme was a toggle that did nothing.** `Settings` persisted `theme: 'light'`
+but no `[data-theme]` rules existed. Now real, with a palette **computed and validated**
+rather than derived by lightening the dark one — the dark-tuned difficulty colours fall
+well below 4.5:1 on white. Shipped figures: body 17.5:1, secondary 7.8:1, muted 5.2:1,
+accent 6.3:1, difficulty 4.9–6.3:1, worst CVD pair ΔE 24.6.
+`muted` is deliberately darker than it looks like it needs to be: at the obvious value it
+measured **4.45:1** against `raised`, just under threshold.
+
+**`localStorage` is the render source of truth for the theme, even when signed in.**
+It is readable synchronously; the account preference arrives an HTTP round-trip later,
+and painting dark then flipping to light is worse than being briefly stale. An inline
+script in `<head>` applies it before first paint.
+
+**There was no mobile navigation at all.** The nav links were hidden below `md` with no
+alternative, so Problems/Leaderboard/Resources were unreachable on a phone. The drawer
+closes on navigation and carries the signed-in destinations that otherwise live only in
+the profile dropdown.
+
+**The transitional `brand-*` alias is gone**, as its own comment intended — the last
+hardcoded `slate-*` classes were migrated first, since they ignored theming entirely.
+
+---
+
+## Step 14 — Final verification
+
+**One real bug found: personal filters were silently dropped for anonymous callers.**
+`GET /problems?status=bookmarked` returned the *entire catalogue* rather than nothing,
+because the whole status clause was skipped when there was no user. A filter that widens
+the result set is the more surprising failure — the same principle already applied to
+tag AND-semantics in step 4. Now the filter is always applied: with no user, `solved`
+and `bookmarked` match nothing and `unsolved` matches everything.
+*Guarded by a regression test that was confirmed to fail against the old code.*
+
+**Deliberately left as-is:** `/leaderboard` coerces unparseable paging to page 1 while
+`/problems` rejects it with a 400. Lenient rather than wrong, and tightening it would
+change an established client contract for no safety gain. Noted here so the asymmetry
+reads as a decision rather than an oversight.
+
+**Documentation correction:** `CLAUDE.md` said usernames are "assigned automatically at
+registration". They are actually backfilled on the first profile read — freshly
+registered accounts have `username: null` until then.
+
+**Three "failures" in the final pass were the harness's fault, not the app's**: reading a
+username before it is backfilled, asserting 401 on an endpoint that is public by design,
+and — the interesting one — checking that a zero-XP user is unranked *after* having
+called `GET /me/gamification`, which performs the daily check-in and therefore awards
+login XP. Reading gamification state mutates it; that is by design, and worth knowing.
+
+---
+
 ## Step 12 — Admin panel
 
 **Two guards exist to stop an admin locking everyone out**: you cannot change your own

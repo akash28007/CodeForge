@@ -485,8 +485,8 @@ gamification code.
       `XpReason.ADMIN_ADJUSTMENT`). `JwtStrategy` now re-reads the account per
       request so suspension and role changes apply to already-issued tokens.
       69/69 backend + 29/29 UI-contract checks verified against the real stack.
-- [ ] 13. Responsive + accessibility pass
-- [ ] 14. Final verification pass
+- [x] 13. Responsive + accessibility pass
+- [x] 14. Final verification pass
 
 **New runtime dependencies added during the rebuild** (the only ones outside the
 originally approved stack): `monaco-editor`, `@monaco-editor/react`. Icons are

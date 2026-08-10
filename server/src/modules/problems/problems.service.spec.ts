@@ -89,11 +89,39 @@ describe('ProblemsService', () => {
       });
     });
 
-    it('ignores status filters for anonymous callers, since they are per-user', async () => {
-      await service.findAll({ status: ['solved'] });
+    /*
+     * These filters are per-user, but an anonymous caller must still have them
+     * *applied* rather than dropped. Silently ignoring the clause answered "which
+     * problems have I bookmarked?" with the entire catalogue — a filter that widens
+     * the result set is the more surprising failure, and this is the regression guard.
+     */
+    it('applies solved/bookmarked filters as empty for anonymous callers, never ignoring them', async () => {
+      for (const status of [['solved'], ['bookmarked']] as const) {
+        prisma.problem.findMany.mockClear();
+        await service.findAll({ status: [...status] });
+
+        const where = prisma.problem.findMany.mock.calls[0][0].where;
+        const serialised = JSON.stringify(where);
+        // No per-user clause can be built without a user...
+        expect(serialised).not.toContain('userId');
+        // ...but the filter still has to constrain the result to nothing.
+        expect(serialised).toContain('"in":[]');
+      }
+    });
+
+    it('treats everything as unsolved for an anonymous caller', async () => {
+      await service.findAll({ status: ['unsolved'] });
 
       const where = prisma.problem.findMany.mock.calls[0][0].where;
-      expect(JSON.stringify(where)).not.toContain('submissions');
+      // A match-all clause, not an impossible one — nobody has solved anything.
+      expect(JSON.stringify(where)).not.toContain('"in":[]');
+    });
+
+    it('still builds a real per-user clause when a caller is signed in', async () => {
+      await service.findAll({ status: ['bookmarked'] }, 'user-1');
+
+      const where = prisma.problem.findMany.mock.calls[0][0].where;
+      expect(JSON.stringify(where)).toContain('user-1');
     });
 
     it('computes the acceptance rate from real submission tallies', async () => {

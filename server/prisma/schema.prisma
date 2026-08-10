@@ -70,7 +70,8 @@ model User {
   id           String       @id @default(uuid())
   name         String
   email        String       @unique
-  /// Public handle shown as @username. Assigned automatically at registration.
+  /// Public handle shown as @username. Backfilled on first profile read, not at
+  /// registration — a freshly registered account has this null until then.
   username     String?      @unique
   bio          String?
   /// Incremented when someone other than the owner opens the profile.
