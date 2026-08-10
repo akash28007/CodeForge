@@ -36,14 +36,6 @@ export default {
         // verdict extras
         error: token('error'),
         info: token('info'),
-        // Transitional alias for pages not yet migrated to the semantic tokens above.
-        // Removed once every page has been rebuilt against the new design system.
-        brand: {
-          400: token('accent-soft'),
-          500: token('accent'),
-          600: token('accent'),
-          700: token('accent'),
-        },
       },
       boxShadow: {
         glow: '0 0 0 1px rgb(var(--c-accent) / 0.35), 0 0 24px rgb(var(--c-accent) / 0.22)',

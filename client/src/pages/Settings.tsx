@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { getErrorMessage } from '../utils/errors';
 import Button from '../components/ui/Button';
 import TextField from '../components/ui/TextField';
@@ -49,6 +50,7 @@ function Section({ title, description, children }: { title: string; description?
 }
 
 export default function Settings() {
+  const { theme, setTheme } = useTheme();
   const { user, logout, refreshUser } = useAuth();
   const { push } = useToast();
   const navigate = useNavigate();
@@ -282,12 +284,17 @@ export default function Settings() {
                   { value: 'dark', label: 'Dark' },
                   { value: 'light', label: 'Light' },
                 ]}
-                value={prefs.theme}
-                onChange={(v) => void updatePref({ theme: v })}
+                value={theme}
+                onChange={(v) => {
+                  // Applied locally first so the change is instant, then persisted to
+                  // the account so it follows the user to another browser.
+                  setTheme(v === 'light' ? 'light' : 'dark');
+                  void updatePref({ theme: v });
+                }}
                 className="w-40"
               />
               <p className="mt-1 text-xs text-muted">
-                The light theme is not fully validated yet — the dark theme is the supported default.
+                Applies immediately and is saved to your account.
               </p>
             </div>
           </Section>

@@ -46,6 +46,46 @@
     --c-heat-4: 165 180 252;
   }
 
+  /*
+   * Light theme. Only the token values change — no component knows a theme exists.
+   *
+   * These are not the dark values lightened: on white, the dark-tuned green/amber/red
+   * fall well below 4.5:1 as text. Every value here was run through the same
+   * contrast + colour-vision check as the dark set, and the results are:
+   *   body text     17.5:1   ·  secondary 7.8:1  ·  muted 5.2:1 (4.9:1 on raised)
+   *   accent         6.3:1   ·  easy 5.5:1  ·  medium 4.9:1  ·  hard 6.3:1
+   *   difficulty separation: dE 46-102 normal, worst CVD pair dE 24.6
+   * `muted` is deliberately darker than it looks like it needs to be — at the
+   * obvious value it measured 4.45:1 against `raised`, just under the threshold.
+   */
+  :root[data-theme='light'] {
+    --c-base: 247 248 250;
+    --c-surface: 255 255 255;
+    --c-raised: 239 241 245;
+    --c-subtle: 220 224 232;
+
+    --c-primary: 17 19 24;
+    --c-secondary: 71 78 94;
+    --c-muted: 98 105 122;
+
+    --c-accent: 79 70 229;
+    --c-accent-soft: 99 102 241;
+
+    --c-easy: 4 120 87;
+    --c-medium: 161 98 7;
+    --c-hard: 190 24 40;
+
+    --c-error: 194 65 12;
+    --c-info: 29 78 216;
+
+    /* Sequential ramp inverted for a light ground: darker means more activity. */
+    --c-heat-0: 233 236 242;
+    --c-heat-1: 199 210 254;
+    --c-heat-2: 129 140 248;
+    --c-heat-3: 79 70 229;
+    --c-heat-4: 49 46 129;
+  }
+
   body {
     @apply bg-canvas text-primary font-sans antialiased;
   }

@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { GamificationProvider } from './context/GamificationContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import { HomeContentProvider } from './context/HomeContentContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -35,6 +36,7 @@ import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <GamificationProvider>
         <NotificationsProvider>
@@ -94,5 +96,6 @@ export default function App() {
         </NotificationsProvider>
       </GamificationProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -50,7 +50,7 @@ const PERIODS = [
 ];
 
 const podiumAccent = ['text-medium', 'text-secondary', 'text-error'];
-const podiumRing = ['ring-medium/40', 'ring-slate-400/30', 'ring-error/30'];
+const podiumRing = ['ring-medium/40', 'ring-muted/30', 'ring-error/30'];
 
 function RankCell({ rank }: { rank: number }) {
   if (rank <= 3) {

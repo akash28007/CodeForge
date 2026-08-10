@@ -12,12 +12,12 @@ interface TestCaseInput {
 
 const emptyTestCase = (): TestCaseInput => ({ input: '', expectedOutput: '', isHidden: true });
 const inputCls =
-  'w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors';
+  'w-full bg-surface border border-subtle rounded-md px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-sm text-slate-400">{label}</span>
+      <span className="text-sm text-secondary">{label}</span>
       {children}
     </label>
   );
@@ -133,12 +133,12 @@ export default function ProblemForm() {
     }
   }
 
-  if (loading) return <p className="text-slate-400">Loading…</p>;
+  if (loading) return <p className="text-secondary">Loading…</p>;
 
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">{isEdit ? 'Edit problem' : 'New problem'}</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-xl border border-subtle bg-surface/60 p-6">
         <Field label="Title">
           <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} required />
         </Field>
@@ -238,16 +238,16 @@ export default function ProblemForm() {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-slate-400 text-sm">
+            <h2 className="text-secondary text-sm">
               Test cases {isEdit && '(leave blank to keep the existing ones)'}
             </h2>
-            <button type="button" onClick={addTestCase} className="text-brand-400 text-sm hover:underline">
+            <button type="button" onClick={addTestCase} className="text-accent text-sm hover:underline">
               + Add test case
             </button>
           </div>
           <div className="flex flex-col gap-3">
             {testCases.map((tc, i) => (
-              <div key={i} className="border border-slate-700 rounded-lg p-3 bg-slate-950/40">
+              <div key={i} className="border border-subtle rounded-lg p-3 bg-canvas/40">
                 <div className="grid grid-cols-2 gap-3">
                   <textarea
                     className={`${inputCls} h-16 font-mono`}
@@ -263,7 +263,7 @@ export default function ProblemForm() {
                   />
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <label className="flex items-center gap-2 text-sm text-slate-400">
+                  <label className="flex items-center gap-2 text-sm text-secondary">
                     <input
                       type="checkbox"
                       checked={tc.isHidden}
@@ -290,7 +290,7 @@ export default function ProblemForm() {
         <button
           type="submit"
           disabled={saving}
-          className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 rounded-md px-4 py-2 font-medium text-white shadow-glow self-start transition-colors"
+          className="bg-accent hover:bg-accent-soft disabled:opacity-50 rounded-md px-4 py-2 font-medium text-white shadow-glow self-start transition-colors"
         >
           {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create problem'}
         </button>

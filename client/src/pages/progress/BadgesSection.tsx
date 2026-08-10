@@ -3,7 +3,7 @@ import { LEVELS } from '../../utils/levels';
 import type { BadgeState } from '../../context/GamificationContext';
 
 const rarityRing: Record<string, string> = {
-  COMMON: 'ring-slate-500/30',
+  COMMON: 'ring-muted/30',
   RARE: 'ring-info/40',
   EPIC: 'ring-accent/50',
   LEGENDARY: 'ring-medium/50',

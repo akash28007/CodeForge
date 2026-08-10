@@ -11,6 +11,19 @@
       rel="stylesheet"
     />
     <title>CodeForge</title>
+    <script>
+      // Applied before first paint. React sets this too, but only after the bundle
+      // has parsed — without this a light-theme user sees a dark flash on every load.
+      (function () {
+        try {
+          var t = localStorage.getItem('codeforge.theme') === 'light' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.style.colorScheme = t;
+        } catch (e) {
+          /* private mode / storage disabled — the dark default already applies */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
