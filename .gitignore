@@ -9,3 +9,6 @@ server/dist/
 generated/
 coverage/
 *.tsbuildinfo
+
+# Admin-uploaded images (runtime data, not source)
+server/uploads/

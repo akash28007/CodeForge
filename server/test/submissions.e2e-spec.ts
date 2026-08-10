@@ -159,9 +159,13 @@ describe('Submissions + Leaderboard (e2e, real Docker judging)', () => {
   });
 
   it('reflects the accepted solve on the leaderboard', async () => {
-    const res = await request(app.getHttpServer()).get('/leaderboard').expect(200);
-    const entry = res.body.find((e: { userId: string }) => e.userId === userId);
+    // The board is XP-ranked and paginated, so page size is raised to be sure the row is
+    // on the page rather than pushed off it by other seeded users.
+    const res = await request(app.getHttpServer()).get('/leaderboard?pageSize=100').expect(200);
+    const entry = res.body.entries.find((e: { userId: string }) => e.userId === userId);
     expect(entry).toBeDefined();
     expect(entry.solvedCount).toBeGreaterThanOrEqual(1);
+    // An accepted solve must also have granted XP, which is what the ranking uses.
+    expect(entry.xp).toBeGreaterThan(0);
   });
 });

@@ -11,6 +11,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubmitCodeDto } from './dto/submit-code.dto';
+import { QuerySubmissionsDto } from './dto/query-submissions.dto';
 import { JwtPayload } from '../../types/jwt-payload.interface';
 import { RunSampleResult } from './judge.processor';
 import { createRedisConnection } from '../../queue/redis-connection.util';
@@ -26,6 +27,7 @@ const summarySelect = Prisma.validator<Prisma.SubmissionSelect>()({
   passedCount: true,
   totalCount: true,
   submittedAt: true,
+  problem: { select: { title: true, difficulty: true } },
 });
 
 const detailSelect = Prisma.validator<Prisma.SubmissionSelect>()({
@@ -119,12 +121,52 @@ export class SubmissionsService implements OnModuleDestroy {
     return this.toDetailView(submission);
   }
 
-  findAllForCurrentUser(userId: string) {
-    return this.prisma.submission.findMany({
+  /** The user's own history, filterable by verdict, difficulty, language and date range. */
+  async findAllForCurrentUser(userId: string, query: QuerySubmissionsDto = {}) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const where: Prisma.SubmissionWhereInput = {
+      userId,
+      ...(query.status?.length ? { status: { in: query.status } } : {}),
+      ...(query.language?.length ? { language: { in: query.language } } : {}),
+      ...(query.difficulty?.length ? { problem: { difficulty: { in: query.difficulty } } } : {}),
+      ...(query.from || query.to
+        ? {
+            submittedAt: {
+              ...(query.from ? { gte: new Date(query.from) } : {}),
+              // `to` is inclusive of the whole day the user picked.
+              ...(query.to ? { lte: new Date(`${query.to.slice(0, 10)}T23:59:59.999Z`) } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const orderBy: Prisma.SubmissionOrderByWithRelationInput =
+      query.sort === 'runtime' ? { runtime: 'asc' } : { submittedAt: 'desc' };
+
+    const [items, total] = await Promise.all([
+      this.prisma.submission.findMany({
+        where,
+        select: summarySelect,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.submission.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize };
+  }
+
+  /** Distinct languages this user has submitted in — powers the filter dropdown. */
+  async languagesUsed(userId: string) {
+    const rows = await this.prisma.submission.findMany({
       where: { userId },
-      select: summarySelect,
-      orderBy: { submittedAt: 'desc' },
+      select: { language: true },
+      distinct: ['language'],
     });
+    return rows.map((r) => r.language);
   }
 
   private toDetailView(submission: SubmissionDetail) {

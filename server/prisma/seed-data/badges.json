@@ -1,0 +1,102 @@
+[
+  {
+    "code": "first-steps",
+    "name": "First Steps",
+    "description": "Solve your first problem",
+    "criteria": "PROBLEMS_SOLVED",
+    "threshold": 1,
+    "rarity": "COMMON",
+    "xpReward": 50,
+    "order": 1
+  },
+  {
+    "code": "getting-going",
+    "name": "Getting Going",
+    "description": "Solve 5 problems",
+    "criteria": "PROBLEMS_SOLVED",
+    "threshold": 5,
+    "rarity": "COMMON",
+    "xpReward": 50,
+    "order": 2
+  },
+  {
+    "code": "problem-solver",
+    "name": "Problem Solver",
+    "description": "Solve 10 problems",
+    "criteria": "PROBLEMS_SOLVED",
+    "threshold": 10,
+    "rarity": "COMMON",
+    "xpReward": 75,
+    "order": 3
+  },
+  {
+    "code": "half-century",
+    "name": "Half Century",
+    "description": "Solve 50 problems",
+    "criteria": "PROBLEMS_SOLVED",
+    "threshold": 50,
+    "rarity": "RARE",
+    "xpReward": 150,
+    "order": 4
+  },
+  {
+    "code": "centurion",
+    "name": "Centurion",
+    "description": "Solve 100 problems",
+    "criteria": "PROBLEMS_SOLVED",
+    "threshold": 100,
+    "rarity": "EPIC",
+    "xpReward": 250,
+    "order": 5
+  },
+  {
+    "code": "hard-mode",
+    "name": "Hard Mode",
+    "description": "Solve your first Hard problem",
+    "criteria": "HARD_SOLVED",
+    "threshold": 1,
+    "rarity": "RARE",
+    "xpReward": 100,
+    "order": 6
+  },
+  {
+    "code": "hard-hitter",
+    "name": "Hard Hitter",
+    "description": "Solve 10 Hard problems",
+    "criteria": "HARD_SOLVED",
+    "threshold": 10,
+    "rarity": "EPIC",
+    "xpReward": 250,
+    "order": 7
+  },
+  {
+    "code": "consistent",
+    "name": "Consistent",
+    "description": "Reach a 7-day streak",
+    "criteria": "STREAK_DAYS",
+    "threshold": 7,
+    "rarity": "RARE",
+    "xpReward": 100,
+    "order": 8
+  },
+  {
+    "code": "unstoppable",
+    "name": "Unstoppable",
+    "description": "Reach a 30-day streak",
+    "criteria": "STREAK_DAYS",
+    "threshold": 30,
+    "rarity": "LEGENDARY",
+    "xpReward": 300,
+    "order": 9
+  },
+  {
+    "code": "veteran",
+    "name": "Veteran",
+    "description": "Earn 5,000 XP",
+    "criteria": "TOTAL_XP",
+    "threshold": 5000,
+    "rarity": "LEGENDARY",
+    "xpReward": 300,
+    "order": 10
+  }
+]

@@ -1,0 +1,280 @@
+[
+  {
+    "title": "Sum of Two Numbers",
+    "difficulty": "EASY",
+    "statement": "Given two integers a and b, print their sum.",
+    "constraints": "-10^9 <= a, b <= 10^9",
+    "inputFormat": "A single line containing two space-separated integers a and b.",
+    "outputFormat": "A single integer — the sum of a and b.",
+    "sampleInput": "2 3",
+    "sampleOutput": "5",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["math", "basics"],
+    "testCases": [
+      { "input": "2 3", "expectedOutput": "5", "isHidden": false },
+      { "input": "10 20", "expectedOutput": "30", "isHidden": true },
+      { "input": "-5 5", "expectedOutput": "0", "isHidden": true },
+      { "input": "1000000000 1000000000", "expectedOutput": "2000000000", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Reverse a String",
+    "difficulty": "EASY",
+    "statement": "Given a string s, print the string reversed.",
+    "constraints": "1 <= |s| <= 1000. The string contains no spaces.",
+    "inputFormat": "A single line containing the string s.",
+    "outputFormat": "The reversed string.",
+    "sampleInput": "hello",
+    "sampleOutput": "olleh",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["strings", "basics"],
+    "testCases": [
+      { "input": "hello", "expectedOutput": "olleh", "isHidden": false },
+      { "input": "codeforge", "expectedOutput": "egrofedoc", "isHidden": true },
+      { "input": "a", "expectedOutput": "a", "isHidden": true }
+    ]
+  },
+  {
+    "title": "FizzBuzz",
+    "difficulty": "EASY",
+    "statement": "Print the numbers from 1 to n, one per line. For multiples of 3 print \"Fizz\" instead of the number, for multiples of 5 print \"Buzz\", and for multiples of both print \"FizzBuzz\".",
+    "constraints": "1 <= n <= 10000",
+    "inputFormat": "A single integer n.",
+    "outputFormat": "n lines, each containing a number, Fizz, Buzz, or FizzBuzz.",
+    "sampleInput": "5",
+    "sampleOutput": "1\n2\nFizz\n4\nBuzz",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["math", "implementation"],
+    "testCases": [
+      { "input": "5", "expectedOutput": "1\n2\nFizz\n4\nBuzz", "isHidden": false },
+      { "input": "3", "expectedOutput": "1\n2\nFizz", "isHidden": true },
+      {
+        "input": "15",
+        "expectedOutput": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+        "isHidden": true
+      }
+    ]
+  },
+  {
+    "title": "Maximum in an Array",
+    "difficulty": "EASY",
+    "statement": "Given an array of n integers, print the largest element.",
+    "constraints": "1 <= n <= 10^5, -10^9 <= a[i] <= 10^9",
+    "inputFormat": "The first line contains n. The second line contains n space-separated integers.",
+    "outputFormat": "A single integer — the maximum element.",
+    "sampleInput": "5\n3 7 2 9 4",
+    "sampleOutput": "9",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["arrays", "basics"],
+    "testCases": [
+      { "input": "5\n3 7 2 9 4", "expectedOutput": "9", "isHidden": false },
+      { "input": "1\n-5", "expectedOutput": "-5", "isHidden": true },
+      { "input": "4\n2 2 2 2", "expectedOutput": "2", "isHidden": true },
+      { "input": "6\n-10 -3 -7 -1 -9 -2", "expectedOutput": "-1", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Count Vowels",
+    "difficulty": "EASY",
+    "statement": "Given a string s, count how many characters are vowels (a, e, i, o, u — in either case).",
+    "constraints": "1 <= |s| <= 1000. The string contains no spaces.",
+    "inputFormat": "A single line containing the string s.",
+    "outputFormat": "A single integer — the number of vowels.",
+    "sampleInput": "programming",
+    "sampleOutput": "3",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["strings", "basics"],
+    "testCases": [
+      { "input": "programming", "expectedOutput": "3", "isHidden": false },
+      { "input": "AEIOUxyz", "expectedOutput": "5", "isHidden": true },
+      { "input": "bcdfg", "expectedOutput": "0", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Factorial",
+    "difficulty": "EASY",
+    "statement": "Given a non-negative integer n, print n! (n factorial). Note that 0! = 1.",
+    "constraints": "0 <= n <= 20",
+    "inputFormat": "A single integer n.",
+    "outputFormat": "A single integer — the value of n!.",
+    "sampleInput": "5",
+    "sampleOutput": "120",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["math", "recursion"],
+    "testCases": [
+      { "input": "5", "expectedOutput": "120", "isHidden": false },
+      { "input": "0", "expectedOutput": "1", "isHidden": true },
+      { "input": "20", "expectedOutput": "2432902008176640000", "isHidden": true }
+    ]
+  },
+  {
+    "title": "GCD of Two Numbers",
+    "difficulty": "EASY",
+    "statement": "Given two positive integers a and b, print their greatest common divisor.",
+    "constraints": "1 <= a, b <= 10^9",
+    "inputFormat": "A single line containing two space-separated integers a and b.",
+    "outputFormat": "A single integer — gcd(a, b).",
+    "sampleInput": "12 18",
+    "sampleOutput": "6",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["math", "number-theory"],
+    "testCases": [
+      { "input": "12 18", "expectedOutput": "6", "isHidden": false },
+      { "input": "17 5", "expectedOutput": "1", "isHidden": true },
+      { "input": "100 75", "expectedOutput": "25", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Check Palindrome",
+    "difficulty": "EASY",
+    "statement": "Given a string s, determine whether it reads the same forwards and backwards. Print YES if it does, otherwise print NO.",
+    "constraints": "1 <= |s| <= 1000. The string contains no spaces.",
+    "inputFormat": "A single line containing the string s.",
+    "outputFormat": "YES or NO.",
+    "sampleInput": "racecar",
+    "sampleOutput": "YES",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["strings", "two-pointers"],
+    "testCases": [
+      { "input": "racecar", "expectedOutput": "YES", "isHidden": false },
+      { "input": "hello", "expectedOutput": "NO", "isHidden": true },
+      { "input": "abba", "expectedOutput": "YES", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Binary Search",
+    "difficulty": "MEDIUM",
+    "statement": "Given a sorted array of n distinct integers and a target value, print the 0-based index of the target, or -1 if it is not present.",
+    "constraints": "1 <= n <= 10^5. The array is sorted in strictly increasing order.",
+    "inputFormat": "The first line contains n. The second line contains n sorted integers. The third line contains the target.",
+    "outputFormat": "The 0-based index of the target, or -1.",
+    "sampleInput": "5\n1 3 5 7 9\n7",
+    "sampleOutput": "3",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["binary-search", "arrays"],
+    "testCases": [
+      { "input": "5\n1 3 5 7 9\n7", "expectedOutput": "3", "isHidden": false },
+      { "input": "5\n1 3 5 7 9\n4", "expectedOutput": "-1", "isHidden": true },
+      { "input": "1\n42\n42", "expectedOutput": "0", "isHidden": true },
+      { "input": "6\n2 4 6 8 10 12\n2", "expectedOutput": "0", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Nth Fibonacci Number",
+    "difficulty": "MEDIUM",
+    "statement": "Print the nth Fibonacci number, where F(1) = 1, F(2) = 1, and F(n) = F(n-1) + F(n-2).",
+    "constraints": "1 <= n <= 90. The answer fits in a 64-bit signed integer.",
+    "inputFormat": "A single integer n.",
+    "outputFormat": "A single integer — F(n).",
+    "sampleInput": "10",
+    "sampleOutput": "55",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["dynamic-programming", "math"],
+    "testCases": [
+      { "input": "10", "expectedOutput": "55", "isHidden": false },
+      { "input": "1", "expectedOutput": "1", "isHidden": true },
+      { "input": "50", "expectedOutput": "12586269025", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Longest Common Prefix",
+    "difficulty": "MEDIUM",
+    "statement": "Given n strings, print the longest common prefix shared by all of them. If there is no common prefix, print -1.",
+    "constraints": "1 <= n <= 200, 1 <= length of each string <= 200.",
+    "inputFormat": "The first line contains n. The next n lines each contain one string.",
+    "outputFormat": "The longest common prefix, or -1 if there is none.",
+    "sampleInput": "3\nflower\nflow\nflight",
+    "sampleOutput": "fl",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["strings", "implementation"],
+    "testCases": [
+      { "input": "3\nflower\nflow\nflight", "expectedOutput": "fl", "isHidden": false },
+      { "input": "3\ndog\nracecar\ncar", "expectedOutput": "-1", "isHidden": true },
+      { "input": "2\nabc\nabc", "expectedOutput": "abc", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Two Sum Indices",
+    "difficulty": "MEDIUM",
+    "statement": "Given an array of n integers and a target, find the two distinct positions whose values add up to the target. Print their 0-based indices in increasing order. Exactly one valid answer exists.",
+    "constraints": "2 <= n <= 10^5. Exactly one valid pair exists.",
+    "inputFormat": "The first line contains n. The second line contains n integers. The third line contains the target.",
+    "outputFormat": "Two space-separated 0-based indices, smaller first.",
+    "sampleInput": "4\n2 7 11 15\n9",
+    "sampleOutput": "0 1",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["arrays", "hashing"],
+    "testCases": [
+      { "input": "4\n2 7 11 15\n9", "expectedOutput": "0 1", "isHidden": false },
+      { "input": "3\n3 2 4\n6", "expectedOutput": "1 2", "isHidden": true },
+      { "input": "2\n3 3\n6", "expectedOutput": "0 1", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Spiral Matrix Traversal",
+    "difficulty": "MEDIUM",
+    "statement": "Given an n x m matrix, print all its elements in spiral order, starting from the top-left corner and moving clockwise.",
+    "constraints": "1 <= n, m <= 100",
+    "inputFormat": "The first line contains n and m. The next n lines each contain m integers.",
+    "outputFormat": "All n*m elements in spiral order, space-separated on one line.",
+    "sampleInput": "3 3\n1 2 3\n4 5 6\n7 8 9",
+    "sampleOutput": "1 2 3 6 9 8 7 4 5",
+    "timeLimit": 1000,
+    "memoryLimit": 256,
+    "tags": ["arrays", "matrix", "implementation"],
+    "testCases": [
+      { "input": "3 3\n1 2 3\n4 5 6\n7 8 9", "expectedOutput": "1 2 3 6 9 8 7 4 5", "isHidden": false },
+      { "input": "1 4\n1 2 3 4", "expectedOutput": "1 2 3 4", "isHidden": true },
+      { "input": "2 2\n1 2\n3 4", "expectedOutput": "1 2 4 3", "isHidden": true }
+    ]
+  },
+  {
+    "title": "0/1 Knapsack",
+    "difficulty": "HARD",
+    "statement": "You are given n items, each with a weight and a value, and a knapsack with capacity W. Each item may be taken at most once. Print the maximum total value you can carry without exceeding the capacity.",
+    "constraints": "1 <= n <= 100, 1 <= W <= 1000, 1 <= weight, value <= 1000",
+    "inputFormat": "The first line contains n and W. The next n lines each contain the weight and value of one item.",
+    "outputFormat": "A single integer — the maximum achievable value.",
+    "sampleInput": "3 50\n10 60\n20 100\n30 120",
+    "sampleOutput": "220",
+    "timeLimit": 2000,
+    "memoryLimit": 256,
+    "tags": ["dynamic-programming", "knapsack"],
+    "testCases": [
+      { "input": "3 50\n10 60\n20 100\n30 120", "expectedOutput": "220", "isHidden": false },
+      { "input": "1 1\n2 5", "expectedOutput": "0", "isHidden": true },
+      { "input": "4 10\n5 10\n4 40\n6 30\n3 50", "expectedOutput": "90", "isHidden": true }
+    ]
+  },
+  {
+    "title": "Longest Increasing Subsequence",
+    "difficulty": "HARD",
+    "statement": "Given an array of n integers, print the length of the longest strictly increasing subsequence. A subsequence need not be contiguous.",
+    "constraints": "1 <= n <= 10^5, -10^9 <= a[i] <= 10^9",
+    "inputFormat": "The first line contains n. The second line contains n integers.",
+    "outputFormat": "A single integer — the length of the longest strictly increasing subsequence.",
+    "sampleInput": "8\n10 9 2 5 3 7 101 18",
+    "sampleOutput": "4",
+    "timeLimit": 2000,
+    "memoryLimit": 256,
+    "tags": ["dynamic-programming", "binary-search"],
+    "testCases": [
+      { "input": "8\n10 9 2 5 3 7 101 18", "expectedOutput": "4", "isHidden": false },
+      { "input": "1\n7", "expectedOutput": "1", "isHidden": true },
+      { "input": "5\n5 4 3 2 1", "expectedOutput": "1", "isHidden": true },
+      { "input": "6\n1 2 3 4 5 6", "expectedOutput": "6", "isHidden": true }
+    ]
+  }
+]

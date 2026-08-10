@@ -333,7 +333,168 @@ Never relax these for convenience, even temporarily "to get something working."
       CORS mismatch, Neon's required `sslmode=require`). The actual account creation,
       VM provisioning, and go-live are steps only the user can do (external service
       signups) — not yet confirmed live.
+
+**Local end-to-end verification (before continuing to Milestone 11)** — the user
+paused deployment specifically to click through the real app in a browser first,
+since every milestone through 10 had only ever been verified via `curl`/Supertest,
+never by hand. This surfaced a real, significant gap that automated testing had
+been masking:
+
+**Finding**: the frontend beyond Milestone 2's initial routing scaffold was never
+actually built. `Login`, `Register`, `Problems`, `ProblemDetail`, and `Submissions`
+were still the Milestone-2 placeholder stubs ("Form and auth wiring land in
+Milestone 3", etc.) — real, tested, working backends existed for all of Auth/
+Problems/Submissions/Leaderboard, but there was almost no way to actually use them
+from a browser. Only `Leaderboard.tsx` had real functionality (built properly back
+in Milestone 8). Each backend milestone's own summary was honest about being
+backend-only, but the cumulative effect across several milestones produced a
+misleading overall picture of "done." Built out for real: `AuthContext` (JWT +
+user stored in `localStorage`, axios request/response interceptors for the auth
+header and 401-handling), real `Login`/`Register` forms, a real `Problems` list
+and `ProblemDetail` page (statement, samples, a code editor, `Run sample` and
+`Submit` wired to the real endpoints with status polling), an admin-only
+`ProblemForm` (create/edit, dynamic test case rows), and a real `Submissions`
+history page. Role-aware UI (`user.role === 'ADMIN'`) gates the create/edit/delete
+controls — enforced for real by the backend guards regardless, this is just UX.
+
+**Two real bugs found and fixed while manually testing the new UI, not
+hypothetical**:
+1. `TestCase` had no explicit ordering field — Postgres/Prisma's default row
+   order for a to-many relation isn't a guaranteed contract, so "wrong answer on
+   test case N" could reference a different test case than what the admin saw as
+   "N" in the form. Added `TestCase.order` (migration `add_test_case_order`),
+   threaded through `ProblemsService` create/update (array index → `order`) and
+   `JudgeProcessor`'s query (`orderBy: { order: 'asc' }`). Verified live: a
+   deliberately-wrong solution now correctly fails on the intended test case and
+   shows expected/got only when that specific case is non-hidden.
+2. Deleting a problem with existing submissions threw an unhandled 500 —
+   `Submission.problemId` had no cascade. Discussed the real tradeoff with the
+   user (cascade-delete submission history vs. block the delete vs. soft-delete)
+   rather than silently picking one, since cascade means *other users'* solve
+   history and leaderboard counts can be silently affected by one admin's
+   action. Decided on cascade (`onDelete: Cascade`, migration
+   `submission_problem_cascade`) paired with an explicit frontend confirmation
+   warning naming the consequence, rather than cascade with no warning. Verified
+   live via the real API: created a problem, submitted, deleted the problem,
+   confirmed the submission was actually gone (404) instead of the prior 500.
+
+Also cleaned up a real mess from repeated `start:dev` restarts during this
+session: each Windows Prisma Client regenerate needs the dev server stopped
+first (it holds a lock on the query engine DLL), and several restarts left
+orphaned watch-mode node processes accumulating in the background rather than
+actually dying — found via `Get-Process node`, confirmed which PID actually
+owned which port before killing anything, so the live Vite client wasn't taken
+down by accident.
+
+**Known, not yet fixed**: the UI is functional but visually bare — the user
+flagged it looks "empty and dull" compared to something like LeetCode. Agreed to
+finish functional verification first, then do a dedicated visual/UX/gamification
+design pass as separate, deliberate work rather than patching styles mid-test.
+
+**Remaining verdict coverage confirmed live**: the six terminal judge statuses
+had automated test coverage but had never all been triggered against the real
+running stack by hand. Verified via disposable throwaway accounts + the real
+API (not mocked): COMPILE_ERROR, RUNTIME_ERROR (segfault), and
+TIME_LIMIT_EXCEEDED all matched on the first try. MEMORY_LIMIT_EXCEEDED did not
+on the first attempt — a `malloc`+`memset` of 500MB with no later use of the
+pointer got optimized away entirely by g++'s `-O2` (classic dead-store
+elimination), so the binary never actually touched the memory and returned
+WRONG_ANSWER instead. Confirmed this was a test-code issue, not an app bug, by
+running the identical container flags manually outside the app (real 257MB
+peak RSS, real OOM kill, exit 137) — then retested through the app with a
+`volatile` pointer to defeat the optimization, which correctly produced
+MEMORY_LIMIT_EXCEEDED with a 263MB memory reading. All test accounts cleaned
+up afterward.
+
+**Visual/UX/gamification redesign pass** — no new npm dependencies (icons are
+hand-rolled inline SVGs in `client/src/components/icons.tsx`; fonts are Inter +
+JetBrains Mono via a Google Fonts `<link>` in `index.html`, not a package), so
+nothing outside the originally approved stack was introduced. Added a Tailwind
+theme extension (`tailwind.config.js`: brand indigo accent, semantic
+easy/medium/hard colors, glow shadow, fade/pop keyframes) and a global
+background gradient in `index.css`. New shared components:
+`components/Badge.tsx` (`DifficultyBadge`, `StatusBadge` — a single
+`statusMeta` map now drives status color/icon/label everywhere instead of each
+page re-implementing its own `statusColor()` function). Every page was
+restyled: sticky/blurred `Navbar` with active-route highlighting and an
+initials avatar; `Home` now shows a hero, three feature cards, and — for
+logged-in users — a solved/total stat computed client-side from
+`/problems` + `/submissions` (no backend or schema change, since the
+leaderboard's own solved-count logic already lives server-side and this is
+just a personal-facing echo of the same public data); `Problems` gained a
+solved-checkmark per row and a client-side difficulty filter, both derived the
+same way; `Leaderboard` gained medal styling for the top 3 and highlights the
+current user's own row; `Submissions` gained real status badges and relative
+timestamps. One deliberate small backend change alongside the frontend work:
+`SubmissionsService`'s `summarySelect` now includes `problem: { select: {
+title } }` so `GET /submissions` returns the problem's title instead of
+forcing the frontend to show a raw truncated UUID — no migration, no new
+field, just a nested select on an existing relation, verified live via a
+throwaway account (submit → confirmed `problem.title` present in the
+response). `ProblemDetail`'s code editor now has a tab-bar header and the
+verdict panel is a proper colored card keyed off the same `statusMeta`.
+Type-check and lint verified clean on both `client` and `server` after all of
+the above.
 - [ ] 11. Documentation, README, resume bullets
+
+## Full UI rebuild (post-milestone-10, driven by `CodeForge_UIUX_Implementation_Guide.md`)
+
+The user supplied a complete UI/UX specification with reference mockups. Work follows
+**that document's build order (§14)**, not this file's milestone numbering. Decisions,
+rejected alternatives, and deferred features are recorded in
+**[`docs/DECISIONS.md`](docs/DECISIONS.md)** — read that before changing UI or
+gamification code.
+
+- [x] 1. Design system — tokens, theme provider, shared components
+- [x] 2. Top bar, profile dropdown, routing shell
+- [x] 3. Auth pages
+- [x] 4. Problems page — real server-side filters/search/sort/counts
+      (migrations: `Problem.createdAt`, `Bookmark`)
+- [x] 5. Problem Detail / solve page — Monaco, split pane, live verdicts
+      (migration: `Problem.editorial`, `EditorialView`)
+- [x] 6. Gamification backend — append-only XP ledger, levels, streaks, badges
+      (migration: `XpEntry`, `Badge`, `UserBadge`, `GamificationConfig`)
+- [x] 7. Progress page — real analytics, charts, profile editing
+      (migration: `User.username/bio/profileViews`)
+- [x] 8. Leaderboard rebuild — XP ranking, podium, pinned current-user row, public
+      profiles at /u/:username
+- [x] 9. Supporting pages — Submissions (filters+pagination), Favourites, Settings
+      (profile/account/preferences/notifications/danger zone), Notifications
+      (migration: Notification, UserPreferences)
+- [x] 10. Homepage CMS models + Home page — every string, card, review, logo, and
+      link on the landing page is a DB row, not a literal (migration:
+      `HomeContent` singleton, `CourseCard`, `Review`, `Company`, `SocialLink`,
+      `FooterLink`, `NewsletterSubscriber`, `AuditLog`). Placeholder content
+      installs itself on first read as well as via `db:seed`, and the seed never
+      overwrites rows an admin has edited. Admin CMS API is complete and
+      audit-logged; the *screens* that drive it land with the admin panel in
+      step 12. Site footer added to the shared layout (hidden on the solve page).
+- [x] 11. Resources page + CMS — hybrid content per the agreed strategy: 20 curated
+      outbound links + 3 markdown reference sheets written for CodeForge, across 6
+      categories, plus 4 learning paths (24 steps). Migration
+      `add_resources_and_learning_paths`. Problem steps derive completion from an
+      ACCEPTED submission (never self-reported); resource steps are user-ticked.
+      Single seed source (`seed-data/resources.json`) — the parallel
+      `resources-defaults.ts` was dead code and was merged in then deleted.
+      48/48 checks verified against the real stack.
+- [x] 12. Admin panel — `/admin` shell with eight screens: Dashboard (live counts +
+      judge queue health), Users (search/filter, promote/demote, suspend, XP
+      correction), Judge monitor, Problems, Homepage CMS, Resources CMS,
+      Gamification config, Audit log. Migration
+      `add_user_suspension_and_admin_xp` (`User.suspendedAt/suspendedReason`,
+      `XpReason.ADMIN_ADJUSTMENT`). `JwtStrategy` now re-reads the account per
+      request so suspension and role changes apply to already-issued tokens.
+      69/69 backend + 29/29 UI-contract checks verified against the real stack.
+- [ ] 13. Responsive + accessibility pass
+- [ ] 14. Final verification pass
+
+**New runtime dependencies added during the rebuild** (the only ones outside the
+originally approved stack): `monaco-editor`, `@monaco-editor/react`. Icons are
+hand-rolled SVGs; fonts load via a `<link>`.
+
+**Problem catalogue**: 15 seeded problems, bulk-loadable via `npm run db:seed` — see
+[`docs/ADDING_PROBLEMS.md`](docs/ADDING_PROBLEMS.md). Every seeded problem has been
+verified end-to-end against the real Docker judge.
 
 ## Folder structure (already scaffolded)
 
@@ -356,21 +517,81 @@ because `JWT_REFRESH_SECRET`/`JWT_REFRESH_EXPIRES_IN` already existed in
 `.env.example` with nothing using them.
 
 ```
-POST /auth/register
-POST /auth/login
-POST /auth/refresh        (added — not in the original plan, see note above)
-GET  /problems
-GET  /problem/:id
-POST /problem            (admin only)
-PUT  /problem/:id        (admin only)
-DELETE /problem/:id      (admin only)
-POST /submission
-POST /run                 (sample-input run only, not saved)
-GET  /submission/:id
-GET  /submissions         (current user's history)
-GET  /leaderboard
-GET  /profile
+POST   /auth/register
+POST   /auth/login
+POST   /auth/refresh      (added — not in the original plan, see note above)
+
+GET    /problems          (public; paginated + search/filter/sort; personalised when a token is sent)
+GET    /problems/facets   (public; real topic/difficulty/status counts for the filter panel)
+GET    /problem/:id       (public; admins also receive the editorial text for the edit form)
+POST   /problem                     (admin only)
+PUT    /problem/:id                 (admin only)
+DELETE /problem/:id                 (admin only — cascades to that problem's submissions)
+GET    /problem/:id/editorial       (auth; RECORDS the view before returning content)
+GET    /problem/:id/submissions     (auth; caller's attempts at this problem)
+POST   /problem/:id/bookmark        (auth)
+DELETE /problem/:id/bookmark        (auth)
+
+POST   /submission
+POST   /run               (sample-input run only, not saved)
+GET    /submission/:id
+GET    /submissions       (current user's history)
+
+GET    /leaderboard
+GET    /profile
+PATCH  /profile           (auth; name / username / bio)
+GET    /u/:username       (public profile; bumps the owner's view counter)
+
+GET    /me/activity       (auth; submissions per day)
+GET    /me/progress       (auth; solved vs total, per difficulty)
+GET    /me/analytics      (auth; ?range=week|month|year|all)
+GET    /me/profile-card   (auth; identity + level + rank + derived skills)
+GET    /me/gamification   (auth; XP, level, streak, badges — also performs the daily check-in)
+GET    /me/skills         (auth; XP per topic)
+GET    /me/xp-history     (auth; recent ledger entries)
+
+GET    /home                    (public; hero, courses, reviews, companies, socials, footer)
+POST   /newsletter              (public; subscribe — uniform response, 10/min limit)
+POST   /newsletter/unsubscribe  (public)
+
+GET    /admin/home              (admin; includes unpublished rows)
+PATCH  /admin/home/content      (admin; hero / contact / footer / newsletter copy)
+GET    /admin/home/newsletter   (admin; subscriber list)
+POST PATCH DELETE /admin/home/courses[/:id]       (admin)
+POST PATCH DELETE /admin/home/reviews[/:id]       (admin)
+POST PATCH DELETE /admin/home/companies[/:id]     (admin)
+PUT       DELETE /admin/home/socials[/:id]        (admin; one row per platform)
+POST PATCH DELETE /admin/home/footer-links[/:id]  (admin)
+
+GET    /resources                 (public; ?search=&category=&type=)
+GET    /resources/categories      (public; with counts)
+GET    /resources/paths           (public; per-user completion when a token is sent)
+GET    /resources/:slug           (public; sheet markdown body)
+PATCH  /resources/paths/steps/:id (auth; tick a RESOURCE step — problem steps are judged)
+
+GET    /admin/resources           (admin; includes unpublished)
+POST PATCH DELETE /admin/resources[/:id]            (admin)
+POST PATCH DELETE /admin/resources/categories[/:id] (admin)
+POST PATCH DELETE /admin/resources/paths[/:id]      (admin)
+
+GET    /admin/stats               (admin; dashboard counts + queue health)
+GET    /admin/audit               (admin; recent mutations)
+GET    /admin/users               (admin; ?search=&role=&suspended=&page=)
+GET    /admin/users/:id           (admin)
+PATCH  /admin/users/:id/role      (admin; blocked for self / last admin)
+PATCH  /admin/users/:id/suspension(admin; revokes live tokens immediately)
+POST   /admin/users/:id/xp        (admin; appends an ADMIN_ADJUSTMENT ledger entry)
+GET    /admin/submissions         (admin; judge monitor — never returns `code`)
+GET    PATCH /admin/gamification  (admin; XP values + level thresholds)
+
+POST   /admin/uploads             (admin; multipart image, max 2 MB)
+DELETE /admin/uploads/:filename   (admin)
+GET    /uploads/:filename         (public static; served by useStaticAssets)
 ```
+
+Every `/admin/*` mutation writes an `AuditLog` row (guide §11) through the global
+`AuditService`. Logging happens *after* the write succeeds, and never throws — an
+audit failure must not roll back the change an admin was just told had saved.
 
 ## Instructions for Claude Code specifically
 

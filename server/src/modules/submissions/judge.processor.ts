@@ -2,10 +2,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import { SubmissionStatus } from '@prisma/client';
+import { NotificationType, SubmissionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DockerExecutorService } from '../../docker/docker-executor.service';
 import { decideVerdict } from './judge-verdict.util';
+import { GamificationService } from '../gamification/gamification.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface JudgeSubmissionJob {
   submissionId: string;
@@ -39,6 +41,8 @@ export class JudgeProcessor extends WorkerHost implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly dockerExecutor: DockerExecutorService,
     private readonly config: ConfigService,
+    private readonly gamification: GamificationService,
+    private readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -60,7 +64,7 @@ export class JudgeProcessor extends WorkerHost implements OnModuleInit {
   private async judgeSubmission({ submissionId }: JudgeSubmissionJob): Promise<void> {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
-      include: { problem: { include: { testCases: true } } },
+      include: { problem: { include: { testCases: { orderBy: { order: 'asc' } } } } },
     });
     if (!submission) {
       this.logger.warn(`Submission ${submissionId} vanished before judging`);
@@ -130,6 +134,31 @@ export class JudgeProcessor extends WorkerHost implements OnModuleInit {
             passedCount,
             totalCount: testCases.length,
           },
+        });
+
+        // Neither XP nor notifications may cost the user their verdict: the submission row
+        // is already written, so failures here are logged rather than allowed to fail the
+        // job (which would retry the whole judging run against untrusted code).
+        if (finalStatus === SubmissionStatus.ACCEPTED) {
+          try {
+            await this.gamification.awardForAcceptedSubmission(submissionId);
+          } catch (err) {
+            this.logger.error(`XP award failed for submission ${submissionId}: ${(err as Error).message}`);
+          }
+        }
+
+        await this.notifications.create({
+          userId: submission.userId,
+          type: NotificationType.SUBMISSION_RESULT,
+          title:
+            finalStatus === SubmissionStatus.ACCEPTED
+              ? `Accepted — ${problem.title}`
+              : `${finalStatus.replace(/_/g, ' ').toLowerCase()} — ${problem.title}`,
+          body:
+            finalStatus === SubmissionStatus.ACCEPTED
+              ? `All ${testCases.length} test cases passed.`
+              : `Passed ${passedCount} of ${testCases.length} test cases.`,
+          link: `/problems/${problem.id}`,
         });
       } finally {
         await this.dockerExecutor.cleanupCompiled(compileResult.binaryDir);

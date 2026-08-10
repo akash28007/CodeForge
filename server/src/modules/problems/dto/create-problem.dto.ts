@@ -22,6 +22,11 @@ export class CreateProblemDto {
   @IsString()
   statement!: string;
 
+  /** Optional admin-authored walkthrough, served only from the gated editorial route. */
+  @IsOptional()
+  @IsString()
+  editorial?: string;
+
   @IsString()
   constraints!: string;
 

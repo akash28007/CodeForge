@@ -3,8 +3,20 @@ import { ProblemsService } from './problems.service';
 
 describe('ProblemsService', () => {
   let prisma: {
-    problem: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock };
-    tag: { upsert: jest.Mock };
+    problem: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      findFirst: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
+      groupBy: jest.Mock;
+    };
+    submission: { groupBy: jest.Mock; findMany: jest.Mock };
+    bookmark: { findMany: jest.Mock; count: jest.Mock; upsert: jest.Mock; deleteMany: jest.Mock };
+    problemTag: { groupBy: jest.Mock };
+    tag: { upsert: jest.Mock; findMany: jest.Mock };
   };
   let service: ProblemsService;
 
@@ -13,18 +25,30 @@ describe('ProblemsService', () => {
       problem: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
+        groupBy: jest.fn().mockResolvedValue([]),
       },
-      tag: { upsert: jest.fn() },
+      submission: { groupBy: jest.fn().mockResolvedValue([]), findMany: jest.fn().mockResolvedValue([]) },
+      bookmark: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+        upsert: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      problemTag: { groupBy: jest.fn().mockResolvedValue([]) },
+      tag: { upsert: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     service = new ProblemsService(prisma as any);
   });
 
   describe('hidden test case protection', () => {
     it('never asks Prisma to select testCases when listing problems', async () => {
-      await service.findAll();
+      await service.findAll({});
 
       const selectArg = prisma.problem.findMany.mock.calls[0][0].select;
       expect(selectArg).not.toHaveProperty('testCases');
@@ -37,6 +61,94 @@ describe('ProblemsService', () => {
 
       const selectArg = prisma.problem.findUnique.mock.calls[0][0].select;
       expect(selectArg).not.toHaveProperty('testCases');
+    });
+  });
+
+  describe('findAll', () => {
+    it('paginates in the database for non-computed sorts', async () => {
+      await service.findAll({ page: 3, pageSize: 10, sort: 'title' });
+
+      const args = prisma.problem.findMany.mock.calls[0][0];
+      expect(args.skip).toBe(20);
+      expect(args.take).toBe(10);
+    });
+
+    it('searches titles case-insensitively', async () => {
+      await service.findAll({ search: '  Sum ' });
+
+      const where = prisma.problem.findMany.mock.calls[0][0].where;
+      expect(where.AND).toContainEqual({ title: { contains: 'Sum', mode: 'insensitive' } });
+    });
+
+    it('requires a problem to carry every selected topic', async () => {
+      await service.findAll({ tags: ['arrays', 'hashing'] });
+
+      const where = prisma.problem.findMany.mock.calls[0][0].where;
+      expect(where.AND).toContainEqual({
+        AND: [{ tags: { some: { tag: { name: 'arrays' } } } }, { tags: { some: { tag: { name: 'hashing' } } } }],
+      });
+    });
+
+    it('ignores status filters for anonymous callers, since they are per-user', async () => {
+      await service.findAll({ status: ['solved'] });
+
+      const where = prisma.problem.findMany.mock.calls[0][0].where;
+      expect(JSON.stringify(where)).not.toContain('submissions');
+    });
+
+    it('computes the acceptance rate from real submission tallies', async () => {
+      prisma.problem.findMany.mockResolvedValue([{ id: 'p1', title: 'A', difficulty: 'EASY', tags: [] }]);
+      prisma.submission.groupBy.mockResolvedValue([
+        { problemId: 'p1', status: 'ACCEPTED', _count: { _all: 3 } },
+        { problemId: 'p1', status: 'WRONG_ANSWER', _count: { _all: 1 } },
+      ]);
+
+      const result = await service.findAll({});
+
+      expect(result.items[0].acceptance).toBe(75);
+      expect(result.items[0].totalSubmissions).toBe(4);
+    });
+
+    it('reports solved and bookmarked flags for a signed-in caller', async () => {
+      prisma.problem.findMany.mockResolvedValue([
+        { id: 'p1', title: 'A', difficulty: 'EASY', tags: [] },
+        { id: 'p2', title: 'B', difficulty: 'EASY', tags: [] },
+      ]);
+      prisma.submission.findMany.mockResolvedValue([{ problemId: 'p1' }]);
+      prisma.bookmark.findMany.mockResolvedValue([{ problemId: 'p2' }]);
+
+      const result = await service.findAll({}, 'user-1');
+
+      expect(result.items.find((i) => i.id === 'p1')).toMatchObject({ solved: true, bookmarked: false });
+      expect(result.items.find((i) => i.id === 'p2')).toMatchObject({ solved: false, bookmarked: true });
+    });
+
+    it('does not query per-user tables when nobody is signed in', async () => {
+      prisma.problem.findMany.mockResolvedValue([{ id: 'p1', title: 'A', difficulty: 'EASY', tags: [] }]);
+
+      await service.findAll({});
+
+      expect(prisma.submission.findMany).not.toHaveBeenCalled();
+      expect(prisma.bookmark.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bookmarks', () => {
+    it('upserts so bookmarking twice cannot create a duplicate', async () => {
+      prisma.problem.findUnique.mockResolvedValue({ id: 'p1' });
+
+      await service.setBookmark('p1', 'user-1', true);
+
+      expect(prisma.bookmark.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId_problemId: { userId: 'user-1', problemId: 'p1' } } }),
+      );
+    });
+
+    it('404s for a problem that does not exist instead of creating an orphan row', async () => {
+      prisma.problem.findUnique.mockResolvedValue(null);
+
+      await expect(service.setBookmark('missing', 'user-1', true)).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.bookmark.upsert).not.toHaveBeenCalled();
     });
   });
 

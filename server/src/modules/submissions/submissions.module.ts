@@ -4,9 +4,10 @@ import { SubmissionsController } from './submissions.controller';
 import { SubmissionsService } from './submissions.service';
 import { JudgeProcessor } from './judge.processor';
 import { DockerModule } from '../../docker/docker.module';
+import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: 'judge' }), DockerModule],
+  imports: [BullModule.registerQueue({ name: 'judge' }), DockerModule, GamificationModule],
   controllers: [SubmissionsController],
   providers: [SubmissionsService, JudgeProcessor],
 })

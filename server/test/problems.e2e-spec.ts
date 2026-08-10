@@ -100,8 +100,9 @@ describe('Problems (e2e)', () => {
     });
 
     it('never leaks test case data through the public list endpoint', async () => {
-      const res = await request(app.getHttpServer()).get('/problems').expect(200);
-      const found = res.body.find((p: { id: string }) => p.id === problemId);
+      // pageSize is raised so the seeded catalogue can't push this problem off page 1.
+      const res = await request(app.getHttpServer()).get('/problems?pageSize=100').expect(200);
+      const found = res.body.items.find((p: { id: string }) => p.id === problemId);
       expect(found).toBeDefined();
       expect(found).not.toHaveProperty('testCases');
     });

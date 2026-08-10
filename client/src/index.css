@@ -1,3 +1,103 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Design tokens (Section 0.2 of the UI/UX guide).
+ * Channel triplets, not hex, so Tailwind's `/<alpha-value>` opacity modifiers work
+ * (e.g. `bg-accent/10`). Light mode is a later pass: it only needs to redefine these
+ * values under a `[data-theme='light']` selector, not touch any component.
+ */
+@layer base {
+  :root {
+    --c-base: 13 14 18;
+    --c-surface: 22 23 29;
+    --c-raised: 30 32 40;
+    --c-subtle: 38 40 50;
+
+    --c-primary: 232 233 237;
+    --c-secondary: 161 164 178;
+    --c-muted: 107 111 128;
+
+    --c-accent: 99 102 241;
+    --c-accent-soft: 129 140 248;
+
+    /*
+     * Difficulty triad, tuned for the dark surface and checked with the dataviz
+     * validator rather than picked by eye: contrast >= 3:1, normal-vision
+     * separation dE 16.2, worst CVD pair dE 7.6 (deutan). That last figure sits in
+     * the 6-8 band, which is only acceptable because difficulty is *never* encoded
+     * by colour alone here - every badge and meter row carries its text label.
+     */
+    --c-easy: 18 168 119;
+    --c-medium: 207 138 9;
+    --c-hard: 229 72 77;
+
+    --c-error: 249 115 22;
+    --c-info: 96 165 250;
+
+    /* Sequential ramp for activity intensity: one hue, monotonically lighter as
+     * values rise (correct direction on a dark surface). Deliberately indigo, not
+     * green, so it cannot be misread as the "easy" difficulty colour. */
+    --c-heat-0: 27 29 39;
+    --c-heat-1: 49 46 129;
+    --c-heat-2: 67 56 202;
+    --c-heat-3: 99 102 241;
+    --c-heat-4: 165 180 252;
+  }
+
+  body {
+    @apply bg-canvas text-primary font-sans antialiased;
+  }
+
+  ::selection {
+    background-color: rgb(var(--c-accent) / 0.4);
+    color: white;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-canvas;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-raised rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-subtle;
+  }
+}
+
+@layer utilities {
+  /* Used by the homepage marquee and any infinite-scroll strip. */
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none;
+    }
+
+    /* With the animation off the strip no longer brings the far end into view, so
+     * the viewport has to become scrollable or the later logos are unreachable. */
+    .marquee-viewport {
+      overflow-x: auto;
+    }
+  }
+}

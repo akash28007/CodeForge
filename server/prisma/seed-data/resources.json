@@ -1,0 +1,395 @@
+{
+  "categories": [
+    {
+      "slug": "dsa",
+      "name": "DSA",
+      "icon": "layers",
+      "accent": "accent",
+      "order": 1
+    },
+    {
+      "slug": "languages",
+      "name": "Languages",
+      "icon": "code",
+      "accent": "info",
+      "order": 2
+    },
+    {
+      "slug": "databases",
+      "name": "Databases",
+      "icon": "database",
+      "accent": "easy",
+      "order": 3
+    },
+    {
+      "slug": "system-design",
+      "name": "System Design",
+      "icon": "settings",
+      "accent": "medium",
+      "order": 4
+    },
+    {
+      "slug": "interview-prep",
+      "name": "Interview Prep",
+      "icon": "trophy",
+      "accent": "hard",
+      "order": 5
+    },
+    {
+      "slug": "cheat-sheets",
+      "name": "Cheat Sheets",
+      "icon": "book",
+      "accent": "accent",
+      "order": 6
+    }
+  ],
+  "resources": [
+    {
+      "slug": "big-o-cheat-sheet",
+      "title": "Big-O Cheat Sheet",
+      "description": "Complexity classes, what fits in a one-second limit, and C++ container costs.",
+      "type": "SHEET",
+      "category": "cheat-sheets",
+      "body": "# Big-O Cheat Sheet\n\n## Common orders, fastest to slowest\n\n| Order | Name | Typical source |\n|---|---|---|\n| O(1) | constant | hash lookup, array index |\n| O(log n) | logarithmic | binary search, balanced tree descent |\n| O(n) | linear | single pass over the input |\n| O(n log n) | linearithmic | comparison sorts, divide and conquer |\n| O(n²) | quadratic | nested loop over the same input |\n| O(2ⁿ) | exponential | subset enumeration, naive recursion |\n| O(n!) | factorial | permutation enumeration |\n\n## What fits in one second\n\nA rough budget for a 1-second limit, assuming simple operations:\n\n| n up to | Order you need |\n|---|---|\n| 10 | O(n!) or O(2ⁿ) |\n| 20 | O(2ⁿ) |\n| 500 | O(n³) |\n| 5,000 | O(n²) |\n| 10⁶ | O(n log n) |\n| 10⁸ | O(n) |\n\nUse this to work *backwards*: the constraint tells you the complexity you are\naiming for before you write a line of code. If n ≤ 20, an exponential search is\nprobably intended. If n = 10⁵, anything quadratic will time out.\n\n## C++ container operations\n\n| Container | Access | Insert | Search |\n|---|---|---|---|\n| `vector` | O(1) | O(1) amortised at the back | O(n) |\n| `deque` | O(1) | O(1) at either end | O(n) |\n| `set` / `map` | — | O(log n) | O(log n) |\n| `unordered_set` / `unordered_map` | — | O(1) average | O(1) average, O(n) worst |\n| `priority_queue` | O(1) top | O(log n) | — |\n\n`unordered_*` is average-case O(1) but degrades to O(n) on collisions. In a\ncontest with adversarial tests, an ordered `map` with a guaranteed O(log n) is\nsometimes the safer choice.\n\n## Space counts too\n\nRecursion costs stack space proportional to its depth. A recursive DFS over 10⁶\nnodes will overflow the stack long before it runs out of time.\n",
+      "estimatedMinutes": 6,
+      "order": 0
+    },
+    {
+      "slug": "cpp-stl-reference",
+      "title": "C++ STL Quick Reference",
+      "description": "The containers, algorithms, and idioms you reach for most in a contest.",
+      "type": "SHEET",
+      "category": "cheat-sheets",
+      "body": "# C++ STL Quick Reference\n\nEverything here needs `#include <bits/stdc++.h>` or the specific header.\n\n## Sequence containers\n\n```cpp\nvector<int> v = {3, 1, 2};\nv.push_back(4);          // append\nv.pop_back();            // remove last\nv.size(); v.empty();\nsort(v.begin(), v.end());              // ascending\nsort(v.rbegin(), v.rend());            // descending\nreverse(v.begin(), v.end());\n```\n\n## Sorting with a custom comparator\n\n```cpp\nsort(v.begin(), v.end(), [](const auto& a, const auto& b) {\n    return a.second < b.second;   // true means \"a comes first\"\n});\n```\n\nThe comparator must be a *strict weak ordering* — return `false` for equal\nelements, never `<=`, or you get undefined behaviour.\n\n## Binary search (on a sorted range)\n\n```cpp\nbool found     = binary_search(v.begin(), v.end(), x);\nauto first_ge  = lower_bound(v.begin(), v.end(), x);  // first element >= x\nauto first_gt  = upper_bound(v.begin(), v.end(), x);  // first element  > x\nint  index     = first_ge - v.begin();\nint  count_of_x = upper_bound(...) - lower_bound(...);\n```\n\n## Associative containers\n\n```cpp\nmap<string,int> m;            // sorted by key, O(log n)\nm[\"a\"]++;                     // default-constructs to 0 first\nif (m.count(\"a\")) { ... }\nfor (auto& [key, value] : m) { ... }   // C++17 structured binding\n\nunordered_map<string,int> um; // hash table, O(1) average\nset<int> s; s.insert(5);      // sorted, unique\nmultiset<int> ms;             // sorted, duplicates allowed\n```\n\n## Heaps\n\n```cpp\npriority_queue<int> maxHeap;                                   // largest on top\npriority_queue<int, vector<int>, greater<int>> minHeap;        // smallest on top\nmaxHeap.push(3); maxHeap.top(); maxHeap.pop();\n```\n\n## Strings\n\n```cpp\nstring s = \"hello\";\ns.substr(1, 3);              // \"ell\" — (start, length), not (start, end)\ns.find(\"ll\");                // index, or string::npos\nto_string(42); stoi(\"42\"); stoll(\"42\");\ntransform(s.begin(), s.end(), s.begin(), ::tolower);\n```\n\n## Fast input\n\nLarge inputs time out on `cin` unless you unsync it:\n\n```cpp\nios::sync_with_stdio(false);\ncin.tie(nullptr);\n```\n\nDo not mix `cin` and `scanf` after doing this.\n\n## Useful numeric helpers\n\n```cpp\n__gcd(a, b);                        // GCD\nmax({a, b, c}); min({a, b, c});     // more than two arguments\naccumulate(v.begin(), v.end(), 0LL);  // note the 0LL — 0 overflows on big sums\ncount(v.begin(), v.end(), x);\n```\n\nWatch the accumulator type: `accumulate(..., 0)` sums into an `int` and\noverflows silently even when the vector holds `long long`.\n",
+      "estimatedMinutes": 8,
+      "order": 1
+    },
+    {
+      "slug": "sql-joins",
+      "title": "SQL Joins Cheat Sheet",
+      "description": "INNER vs LEFT, the WHERE-clause trap that silently undoes an outer join, and counting correctly.",
+      "type": "SHEET",
+      "category": "cheat-sheets",
+      "body": "# SQL Joins Cheat Sheet\n\nGiven two tables:\n\n```\nusers            orders\n-----            ------\nid  name         id  user_id  total\n1   Ana          1   1        50\n2   Ben          2   1        30\n3   Cara         3   2        20\n```\n\n## INNER JOIN — rows matching on both sides\n\n```sql\nSELECT u.name, o.total\nFROM users u\nINNER JOIN orders o ON o.user_id = u.id;\n```\n\nAna/50, Ana/30, Ben/20. **Cara disappears** — she has no orders.\n\n## LEFT JOIN — every left row, matched or not\n\n```sql\nSELECT u.name, o.total\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id;\n```\n\nAna/50, Ana/30, Ben/20, **Cara/NULL**. This is the one you want for \"list every\nuser and their order count, including users with none\".\n\n## The classic LEFT JOIN mistake\n\n```sql\n-- WRONG: the WHERE turns this back into an INNER JOIN\nSELECT u.name FROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nWHERE o.total > 25;\n\n-- RIGHT: filter inside the join condition\nSELECT u.name FROM users u\nLEFT JOIN orders o ON o.user_id = u.id AND o.total > 25;\n```\n\nAny `WHERE` condition on a right-side column discards the NULL rows the LEFT\nJOIN just produced, silently undoing it.\n\n## RIGHT JOIN / FULL OUTER JOIN\n\n`RIGHT JOIN` is `LEFT JOIN` with the tables swapped — most people just swap\nthem and keep using LEFT. `FULL OUTER JOIN` keeps unmatched rows from both\nsides.\n\n## Counting with joins\n\n```sql\n-- WRONG: COUNT(*) counts the NULL row too, so Cara gets 1\nSELECT u.name, COUNT(*) FROM users u\nLEFT JOIN orders o ON o.user_id = u.id GROUP BY u.name;\n\n-- RIGHT: COUNT(column) skips NULLs, so Cara gets 0\nSELECT u.name, COUNT(o.id) FROM users u\nLEFT JOIN orders o ON o.user_id = u.id GROUP BY u.name;\n```\n\n`COUNT(*)` counts rows; `COUNT(expr)` counts non-NULL values. On an outer\njoin that difference is the whole answer.\n\n## Join vs. subquery\n\n```sql\n-- \"users who ordered\" — a semi-join; EXISTS won't duplicate rows\nSELECT name FROM users u\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);\n```\n\nAn `INNER JOIN` returns one row *per match*, so a user with three orders\nappears three times. Use `EXISTS` (or `DISTINCT`) when you only want to know\nwhether a match exists.\n",
+      "estimatedMinutes": 7,
+      "order": 2
+    },
+    {
+      "slug": "sqlbolt",
+      "title": "SQLBolt",
+      "description": "Interactive SQL lessons that run queries in the browser. The fastest way from zero to comfortable with SELECT and JOIN.",
+      "type": "EXTERNAL",
+      "category": "databases",
+      "url": "https://sqlbolt.com/",
+      "estimatedMinutes": 90,
+      "order": 0
+    },
+    {
+      "slug": "postgresql-tutorial",
+      "title": "PostgreSQL Official Tutorial",
+      "description": "The official introduction to SQL and Postgres, straight from the source rather than a summary of it.",
+      "type": "ARTICLE",
+      "category": "databases",
+      "url": "https://www.postgresql.org/docs/current/tutorial.html",
+      "estimatedMinutes": 120,
+      "order": 1
+    },
+    {
+      "slug": "mode-sql-tutorial",
+      "title": "Mode SQL Tutorial",
+      "description": "Basic through advanced SQL with real analytical datasets, including window functions.",
+      "type": "EXTERNAL",
+      "category": "databases",
+      "url": "https://mode.com/sql-tutorial/",
+      "estimatedMinutes": 180,
+      "order": 2
+    },
+    {
+      "slug": "cp-algorithms",
+      "title": "CP-Algorithms",
+      "description": "Open-licensed encyclopaedia of competitive-programming algorithms, from binary search to suffix automata. Licensed CC BY-SA 4.0.",
+      "type": "ARTICLE",
+      "category": "dsa",
+      "url": "https://cp-algorithms.com/",
+      "estimatedMinutes": 30,
+      "order": 0
+    },
+    {
+      "slug": "cses-problem-set",
+      "title": "CSES Problem Set",
+      "description": "A free 300-problem set covering the standard competitive-programming topics, in increasing difficulty.",
+      "type": "EXTERNAL",
+      "category": "dsa",
+      "url": "https://cses.fi/problemset/",
+      "order": 1
+    },
+    {
+      "slug": "competitive-programmers-handbook",
+      "title": "Competitive Programmer's Handbook",
+      "description": "Antti Laaksonen's free 300-page book covering the algorithmic toolkit end to end. Creative Commons licensed.",
+      "type": "ARTICLE",
+      "category": "dsa",
+      "url": "https://cses.fi/book/book.pdf",
+      "estimatedMinutes": 600,
+      "order": 2
+    },
+    {
+      "slug": "visualgo",
+      "title": "VisuAlgo — algorithm visualisations",
+      "description": "Step-through animations of sorting, trees, graphs, and more. Useful when the pseudocode is not clicking.",
+      "type": "EXTERNAL",
+      "category": "dsa",
+      "url": "https://visualgo.net/en",
+      "order": 3
+    },
+    {
+      "slug": "mit-6006",
+      "title": "MIT 6.006 — Introduction to Algorithms",
+      "description": "The full MIT undergraduate algorithms course: lecture videos, notes, and problem sets, free on OpenCourseWare.",
+      "type": "VIDEO",
+      "category": "dsa",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+      "order": 4
+    },
+    {
+      "slug": "usaco-guide",
+      "title": "USACO Guide",
+      "description": "Free, open-source, structured path through competitive programming from bronze to platinum.",
+      "type": "EXTERNAL",
+      "category": "dsa",
+      "url": "https://usaco.guide/",
+      "estimatedMinutes": 45,
+      "order": 5
+    },
+    {
+      "slug": "behavioral-interviews",
+      "title": "Behavioural interview preparation",
+      "description": "How to structure answers about past work, with the questions that actually get asked.",
+      "type": "ARTICLE",
+      "category": "interview-prep",
+      "url": "https://www.techinterviewhandbook.org/behavioral-interview/",
+      "estimatedMinutes": 25,
+      "order": 0
+    },
+    {
+      "slug": "tech-interview-handbook",
+      "title": "Tech Interview Handbook",
+      "description": "Free, open-source guide to the whole interview process: algorithms, behavioural rounds, resume and negotiation.",
+      "type": "EXTERNAL",
+      "category": "interview-prep",
+      "url": "https://www.techinterviewhandbook.org/",
+      "estimatedMinutes": 300,
+      "order": 1
+    },
+    {
+      "slug": "neetcode-roadmap",
+      "title": "NeetCode Roadmap",
+      "description": "A dependency-ordered map of the patterns worth learning, so you practise in an order that compounds.",
+      "type": "EXTERNAL",
+      "category": "interview-prep",
+      "url": "https://neetcode.io/roadmap",
+      "estimatedMinutes": 30,
+      "order": 2
+    },
+    {
+      "slug": "cppreference",
+      "title": "cppreference",
+      "description": "The reference for the C++ standard library. Worth knowing well — the STL does most of the work in a contest.",
+      "type": "EXTERNAL",
+      "category": "languages",
+      "url": "https://en.cppreference.com/w/",
+      "estimatedMinutes": 20,
+      "order": 0
+    },
+    {
+      "slug": "learncpp",
+      "title": "LearnCpp",
+      "description": "A thorough, free, beginner-to-advanced C++ tutorial series covering modern C++ properly.",
+      "type": "ARTICLE",
+      "category": "languages",
+      "url": "https://www.learncpp.com/",
+      "estimatedMinutes": 400,
+      "order": 1
+    },
+    {
+      "slug": "mdn-web-docs",
+      "title": "MDN Web Docs",
+      "description": "The reference for JavaScript, HTML, CSS, and browser APIs.",
+      "type": "EXTERNAL",
+      "category": "languages",
+      "url": "https://developer.mozilla.org/",
+      "order": 2
+    },
+    {
+      "slug": "bytebytego-blog",
+      "title": "ByteByteGo Blog",
+      "description": "Short, diagram-led explanations of how real systems are put together.",
+      "type": "ARTICLE",
+      "category": "system-design",
+      "url": "https://blog.bytebytego.com/",
+      "order": 0
+    },
+    {
+      "slug": "system-design-primer",
+      "title": "The System Design Primer",
+      "description": "The best free system design resource there is: scalability, caching, sharding, and worked interview questions. Licensed CC BY 4.0.",
+      "type": "EXTERNAL",
+      "category": "system-design",
+      "url": "https://github.com/donnemartin/system-design-primer",
+      "estimatedMinutes": 480,
+      "order": 1
+    },
+    {
+      "slug": "designing-data-intensive-applications-notes",
+      "title": "Distributed Systems Lecture Series",
+      "description": "Martin Kleppmann's free Cambridge lecture series on distributed systems — the theory under most system design answers.",
+      "type": "VIDEO",
+      "category": "system-design",
+      "url": "https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB",
+      "estimatedMinutes": 480,
+      "order": 2
+    },
+    {
+      "slug": "hussein-nasser",
+      "title": "Hussein Nasser — backend engineering",
+      "description": "Deep dives on databases, networking, and protocols, from someone who explains the why.",
+      "type": "VIDEO",
+      "category": "system-design",
+      "url": "https://www.youtube.com/@hnasr",
+      "order": 3
+    },
+    {
+      "slug": "refactoring-guru-patterns",
+      "title": "Refactoring Guru — Design Patterns",
+      "description": "Clear, illustrated explanations of the classic OOP design patterns with code in multiple languages.",
+      "type": "EXTERNAL",
+      "category": "system-design",
+      "url": "https://refactoring.guru/design-patterns",
+      "estimatedMinutes": 240,
+      "order": 4
+    }
+  ],
+  "paths": [
+    {
+      "slug": "dsa-foundations",
+      "title": "DSA Foundations",
+      "description": "Start from arrays and strings and finish able to reason about complexity. Read a little, then prove it by solving.",
+      "icon": "layers",
+      "accent": "accent",
+      "order": 0,
+      "steps": [
+        {
+          "resource": "big-o-cheat-sheet",
+          "label": "Learn to read the constraints"
+        },
+        {
+          "problem": "Maximum in an Array"
+        },
+        {
+          "problem": "Reverse a String"
+        },
+        {
+          "resource": "visualgo",
+          "label": "See the algorithms run"
+        },
+        {
+          "problem": "Check Palindrome"
+        },
+        {
+          "problem": "Binary Search"
+        },
+        {
+          "resource": "neetcode-roadmap",
+          "label": "Pick your next pattern"
+        },
+        {
+          "problem": "Two Sum Indices"
+        }
+      ]
+    },
+    {
+      "slug": "cpp-for-interviews",
+      "title": "C++ for Interviews",
+      "description": "Get fluent enough in the standard library that the language stops being the bottleneck.",
+      "icon": "code",
+      "accent": "easy",
+      "order": 1,
+      "steps": [
+        {
+          "resource": "cpp-stl-reference",
+          "label": "The STL you actually use"
+        },
+        {
+          "problem": "Count Vowels"
+        },
+        {
+          "problem": "Longest Common Prefix"
+        },
+        {
+          "resource": "cppreference",
+          "label": "Learn to read the reference"
+        },
+        {
+          "problem": "Spiral Matrix Traversal"
+        }
+      ]
+    },
+    {
+      "slug": "start-here",
+      "title": "Start Here",
+      "description": "A short first path: read how to read constraints, then solve four problems that exercise the basics.",
+      "icon": "map",
+      "accent": "accent",
+      "order": 2,
+      "steps": [
+        {
+          "resource": "big-o-cheat-sheet",
+          "label": "Learn to read the constraints"
+        },
+        {
+          "problem": "Sum of Two Numbers"
+        },
+        {
+          "problem": "Reverse a String"
+        },
+        {
+          "problem": "Maximum in an Array"
+        },
+        {
+          "resource": "cpp-stl-reference",
+          "label": "Get comfortable with the STL"
+        },
+        {
+          "problem": "Binary Search"
+        }
+      ]
+    },
+    {
+      "slug": "dynamic-programming",
+      "title": "Dynamic Programming",
+      "description": "The topic most people avoid. Work through it in order and it stops being mysterious.",
+      "icon": "cpu",
+      "accent": "hard",
+      "order": 3,
+      "steps": [
+        {
+          "problem": "Factorial",
+          "label": "Recursion first"
+        },
+        {
+          "problem": "Nth Fibonacci Number"
+        },
+        {
+          "resource": "mit-6006",
+          "label": "The DP lectures"
+        },
+        {
+          "problem": "0/1 Knapsack"
+        },
+        {
+          "problem": "Longest Increasing Subsequence"
+        }
+      ]
+    }
+  ]
+}

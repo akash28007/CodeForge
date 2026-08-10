@@ -11,7 +11,11 @@
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand --forceExit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -58,6 +62,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
+    "@types/multer": "^2.2.0",
     "@types/node": "^20.14.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",

@@ -18,6 +18,43 @@ enum Difficulty {
   HARD
 }
 
+enum NotificationType {
+  SUBMISSION_RESULT
+  BADGE_EARNED
+  LEVEL_UP
+  STREAK_REMINDER
+  ANNOUNCEMENT
+}
+
+enum XpReason {
+  PROBLEM_SOLVED
+  FIRST_ACCEPTED
+  SOLVED_WITHOUT_EDITORIAL
+  QUICK_SOLVE
+  DAILY_LOGIN
+  STREAK_DAY
+  STREAK_MILESTONE
+  BADGE_EARNED
+  /// Manual correction by an admin. Recorded as a ledger entry like everything else —
+  /// the running total is never edited directly.
+  ADMIN_ADJUSTMENT
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+/// What a badge measures. Kept as an enum so unlock evaluation is exhaustive.
+enum BadgeCriteria {
+  PROBLEMS_SOLVED
+  HARD_SOLVED
+  STREAK_DAYS
+  TOTAL_XP
+}
+
 enum SubmissionStatus {
   PENDING
   RUNNING
@@ -33,11 +70,114 @@ model User {
   id           String       @id @default(uuid())
   name         String
   email        String       @unique
+  /// Public handle shown as @username. Assigned automatically at registration.
+  username     String?      @unique
+  bio          String?
+  /// Incremented when someone other than the owner opens the profile.
+  profileViews Int          @default(0)
   password     String
   role         Role         @default(USER)
+  /// Set when an admin suspends the account. Checked on every authenticated request,
+  /// so an already-issued token stops working immediately rather than at expiry.
+  suspendedAt  DateTime?
+  suspendedReason String?
   createdAt    DateTime     @default(now())
   problems     Problem[]    @relation("CreatedProblems")
   submissions  Submission[]
+  bookmarks    Bookmark[]
+  editorialViews EditorialView[]
+  xpEntries    XpEntry[]
+  badges       UserBadge[]
+  notifications Notification[]
+  preferences  UserPreferences?
+  auditLogs    AuditLog[]
+  pathSteps    LearningPathStepCompletion[]
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?
+  /// In-app destination, e.g. `/problems/<id>`.
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+/// Per-user settings. Created lazily on first read so existing accounts need no backfill.
+model UserPreferences {
+  userId              String  @id
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme               String  @default("dark")
+  editorFontSize      Int     @default(13)
+  editorLanguage      String  @default("cpp")
+  notifyVerdicts      Boolean @default(true)
+  notifyBadges        Boolean @default(true)
+  notifyStreaks       Boolean @default(true)
+  notifyAnnouncements Boolean @default(true)
+}
+
+/// Append-only XP ledger. Nothing mutates a running total on the user row — a user's XP
+/// is always SUM(amount) over their entries, which keeps every award auditable and
+/// replayable.
+///
+/// `dedupeKey` is what makes awards idempotent AND race-safe: the uniqueness is enforced
+/// by the database, so two concurrent judge workers finishing the same submission cannot
+/// both insert. Callers treat a unique-violation as "already awarded", not an error.
+model XpEntry {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    XpReason
+  /// Source entity, when the award came from one.
+  problemId String?
+  /// Stable identity of this award, e.g. `solve:<problemId>` or `login:2026-08-09`.
+  dedupeKey String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Badge {
+  id          String        @id @default(uuid())
+  code        String        @unique
+  name        String
+  description String
+  criteria    BadgeCriteria
+  threshold   Int
+  rarity      BadgeRarity   @default(COMMON)
+  /// XP granted the first time this badge is earned.
+  xpReward    Int           @default(50)
+  order       Int           @default(0)
+  users       UserBadge[]
+}
+
+model UserBadge {
+  userId   String
+  badgeId  String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@id([userId, badgeId])
+  @@index([userId])
+}
+
+/// Admin-editable gamification tuning (XP values, level thresholds, level names).
+/// Stored as key/value so the values can change without a migration or a code change,
+/// which is what the spec requires. Code supplies defaults when a key is absent.
+model GamificationConfig {
+  key   String @id
+  value String
 }
 
 model Problem {
@@ -52,11 +192,46 @@ model Problem {
   sampleOutput  String
   timeLimit     Int          // ms
   memoryLimit   Int          // MB
+  /// Optional admin-authored walkthrough. Gated behind an explicit request so that
+  /// "solved without reading the editorial" stays measurable (see EditorialView).
+  editorial     String?
+  createdAt     DateTime     @default(now())
   createdById   String
   createdBy     User         @relation("CreatedProblems", fields: [createdById], references: [id])
   testCases     TestCase[]
   tags          ProblemTag[]
   submissions   Submission[]
+  bookmarks     Bookmark[]
+  editorialViews EditorialView[]
+  pathSteps     LearningPathStep[]
+
+  @@index([createdAt])
+  @@index([difficulty])
+}
+
+/// Records that a user opened a problem's editorial. Written once per (user, problem):
+/// the XP rule in the gamification spec awards a bonus for solving *without* reading it,
+/// so this has to be durable rather than session state.
+model EditorialView {
+  userId    String
+  problemId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@id([userId, problemId])
+}
+
+/// A user's saved/starred problem. Composite PK makes a duplicate bookmark impossible.
+model Bookmark {
+  userId    String
+  problemId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, problemId])
+  @@index([userId])
 }
 
 model TestCase {
@@ -66,6 +241,7 @@ model TestCase {
   input          String
   expectedOutput String
   isHidden       Boolean @default(true)
+  order          Int     @default(0) // judging order, matches the order the admin entered them in
 }
 
 model Submission {
@@ -73,12 +249,12 @@ model Submission {
   userId      String
   user        User             @relation(fields: [userId], references: [id])
   problemId   String
-  problem     Problem          @relation(fields: [problemId], references: [id])
+  problem     Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
   language    String           @default("cpp")
   code        String
   status       SubmissionStatus @default(PENDING)
   runtime      Int?             // ms
-  memory       Int?             // KB, not yet measured — see Milestone 7 notes
+  memory       Int?             // KB, via `time -v` in the sandbox
   errorMessage String?          // compile error text, or a wrong-answer/runtime-error detail
   passedCount  Int?             // test cases passed before the verdict was decided
   totalCount   Int?             // total test cases the problem has
@@ -98,4 +274,263 @@ model ProblemTag {
   tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([problemId, tagId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Homepage CMS (guide §3 / §11)
+//
+// The homepage ships with placeholder copy, but not *hardcoded* copy: every
+// string, card, review, logo, and link below is a database row an admin can
+// edit. The seed installs the defaults; nothing on the page is a literal in the
+// React tree.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Which footer column a link belongs to. Named `section` on the model rather
+/// than `column` because `column` is a reserved word in Postgres.
+enum FooterColumn {
+  PLATFORM
+  COMPANY
+}
+
+enum SocialPlatform {
+  GITHUB
+  LINKEDIN
+  TWITTER
+  INSTAGRAM
+}
+
+/// Single row (id `singleton`) holding the one-of-a-kind homepage copy. Anything
+/// that repeats — course cards, reviews, companies, footer links — gets its own
+/// table so admins can add and reorder entries rather than editing a blob.
+model HomeContent {
+  id String @id @default("singleton")
+
+  heroHeadline String
+  /// Substring of `heroHeadline` painted in the accent colour. Stored separately
+  /// so admins can highlight any word without embedding markup in the headline.
+  heroHighlight String
+  heroSubtext   String
+  /// Null renders the built-in inline SVG illustration. Image *upload* needs
+  /// object storage that is not provisioned yet — see docs/DECISIONS.md.
+  heroImageUrl  String?
+
+  ctaPrimaryLabel   String
+  ctaPrimaryHref    String
+  ctaSecondaryLabel String
+  ctaSecondaryHref  String
+  ctaTertiaryLabel  String
+  ctaTertiaryHref   String
+
+  coursesHeading     String
+  coursesViewAllHref String
+  reviewsHeading     String
+  reviewsViewAllHref String
+
+  marqueeCaption String
+
+  contactHeading String
+  contactPhone   String
+  contactEmail   String
+
+  footerTagline     String
+  newsletterHeading String
+  newsletterBody    String
+  copyrightText     String
+
+  updatedAt DateTime @updatedAt
+}
+
+model CourseCard {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  /// Free text ("120+ Problems"). Deliberately not a computed count: these cards
+  /// point at curated tracks that do not map onto a single tag query.
+  metaLabel   String
+  href        String
+  /// Icon key resolved to a hand-rolled SVG on the client — no asset upload.
+  icon        String  @default("code")
+  /// Design-token name for the tile colour (accent | easy | medium | hard | info).
+  accent      String  @default("accent")
+  order       Int     @default(0)
+  published   Boolean @default(true)
+
+  @@index([order])
+}
+
+model Review {
+  id        String  @id @default(uuid())
+  name      String
+  avatarUrl String?
+  /// 1–5. Rendered as stars plus the numeric value beside them.
+  rating    Int     @default(5)
+  body      String
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  @@index([order])
+}
+
+model Company {
+  id        String  @id @default(uuid())
+  name      String
+  /// Null renders the company name as a wordmark. Avoids shipping third-party
+  /// trademarks into the repo while keeping the marquee real and editable.
+  logoUrl   String?
+  order     Int     @default(0)
+  published Boolean @default(true)
+
+  @@index([order])
+}
+
+/// Powers both the Contact "Follow us" row and the footer's Follow Us column, so
+/// the two can never drift apart.
+model SocialLink {
+  id        String         @id @default(uuid())
+  platform  SocialPlatform @unique
+  url       String
+  order     Int            @default(0)
+  published Boolean        @default(true)
+}
+
+model FooterLink {
+  id        String       @id @default(uuid())
+  section   FooterColumn
+  label     String
+  href      String
+  order     Int          @default(0)
+  published Boolean      @default(true)
+
+  @@index([section, order])
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  createdAt      DateTime  @default(now())
+  /// Set instead of deleting the row, so a resubscribe is distinguishable from a
+  /// first-time signup.
+  unsubscribedAt DateTime?
+}
+
+/// Append-only record of admin mutations (guide §11: "all admin mutations should
+/// be audit-logged"). Written by the admin controllers; never updated or deleted.
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String?
+  /// Human-readable one-liner ("Updated course card \"SQL Basics\"").
+  summary   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resources (guide §9)
+//
+// Hybrid by design: most resources are curated links out to existing free material
+// (`url`), and a few are cheat sheets authored here and stored as markdown (`body`).
+// A resource has exactly one of the two — enforced in the service, since Postgres
+// check constraints aren't expressible in the Prisma schema.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ResourceType {
+  ARTICLE
+  VIDEO
+  SHEET
+  EXTERNAL
+}
+
+model ResourceCategory {
+  id        String     @id @default(uuid())
+  slug      String     @unique
+  name      String
+  /// Icon key resolved to a hand-rolled SVG on the client.
+  icon      String     @default("book")
+  /// Design-token name for the chip/tile colour.
+  accent    String     @default("accent")
+  order     Int        @default(0)
+  published Boolean    @default(true)
+  resources Resource[]
+
+  @@index([order])
+}
+
+model Resource {
+  id          String           @id @default(uuid())
+  slug        String           @unique
+  title       String
+  description String
+  type        ResourceType
+  categoryId  String
+  category    ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// Outbound link for curated material. Null for locally-authored sheets.
+  url         String?
+  /// Markdown body for sheets authored here. Null for curated links.
+  body        String?
+  thumbnailUrl String?
+  /// Read/watch time in minutes. Null when it genuinely isn't known — the card shows
+  /// nothing rather than inventing a number.
+  estimatedMinutes Int?
+  order       Int              @default(0)
+  published   Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  steps       LearningPathStep[]
+
+  @@index([categoryId, order])
+  @@index([type])
+}
+
+model LearningPath {
+  id          String             @id @default(uuid())
+  slug        String             @unique
+  title       String
+  description String
+  icon        String             @default("map")
+  accent      String             @default("accent")
+  order       Int                @default(0)
+  published   Boolean            @default(true)
+  steps       LearningPathStep[]
+
+  @@index([order])
+}
+
+/// One ordered step in a path. Points at either a resource to read or a problem to
+/// solve — never both, never neither (enforced in the service).
+model LearningPathStep {
+  id          String       @id @default(uuid())
+  pathId      String
+  path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  order       Int
+  /// Optional label shown instead of the target's own title.
+  label       String?
+  resourceId  String?
+  resource    Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  problemId   String?
+  problem     Problem?     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  completions LearningPathStepCompletion[]
+
+  @@unique([pathId, order])
+  @@index([pathId])
+}
+
+/// Explicit "I've read this" tick for *resource* steps only.
+///
+/// Problem steps deliberately have no row here — their completion is derived from
+/// whether the user has an ACCEPTED submission, so a path can never claim a problem
+/// is done when the judge disagrees.
+model LearningPathStepCompletion {
+  userId      String
+  stepId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  step        LearningPathStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  completedAt DateTime         @default(now())
+
+  @@id([userId, stepId])
+  @@index([userId])
 }
