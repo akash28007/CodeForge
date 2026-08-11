@@ -2,6 +2,77 @@
 
 This file is the handoff from planning done in claude.ai chat. Read this fully before doing anything.
 
+---
+
+## CURRENT STATE — read this first (last updated: 11 Aug 2026)
+
+**Everything is built and verified.** Milestones 1–10 and all 14 steps of the UI/UX
+rebuild are complete. The user has clicked through the running app and confirmed it
+looks solid. The next work is a set of **corrections they will describe** — ask what
+they are; do not guess or start rewriting things.
+
+### Where the source of truth lives
+
+| What | Where |
+|---|---|
+| UI/UX spec driving the rebuild | `C:\Users\IIITA\Downloads\CodeForge_UIUX_Guide_with_references\CodeForge_UIUX_Implementation_Guide.md` — **outside the repo** |
+| Reference mockups | `…\CodeForge_UIUX_Guide_with_references\ui-references\*.png` |
+| Why things are built as they are | [`docs/DECISIONS.md`](docs/DECISIONS.md) — read before changing UI, gamification, or CMS code |
+| Adding problems | [`docs/ADDING_PROBLEMS.md`](docs/ADDING_PROBLEMS.md) |
+
+### Git
+
+All work is on branch **`feat/ui-rebuild-steps-1-12`** (3 commits), **not merged to
+`main`**. `main` is still at the initial commit. Merge with:
+`git checkout main && git merge feat/ui-rebuild-steps-1-12`
+
+### Running it locally
+
+```
+docker compose up -d                 # Postgres + Redis (from the repo root)
+cd server && npm run start:dev       # API on http://localhost:4000  (docs at /docs)
+cd client && npm run dev             # UI  on http://localhost:5173
+```
+There is one account in the database: `akashy07v@gmail.com`, already `ADMIN`.
+Seed/refresh content with `cd server && npm run db:seed`.
+
+### Gotchas that have actually bitten this project
+
+- **Windows holds a lock on the Prisma query engine DLL.** Stop the API dev server
+  before `prisma migrate` / `generate`, or it fails.
+- **Orphaned `node` processes accumulate** across restarts and silently hold ports.
+  Check with `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` before assuming
+  a port is free.
+- **Two Claude Code instances can resume the same session** and edit the same files
+  concurrently, which looks exactly like a mystery second writer. Diagnose by comparing
+  the `--resume=` flag across `claude.exe` processes; fix with a VS Code window reload.
+- **The seed never deletes.** Retiring a slug or rewriting a learning path in
+  `seed-data/*.json` leaves the old rows behind; they must be removed deliberately.
+- **`GET /me/gamification` mutates state** — it performs the daily check-in and awards
+  login XP. Do not use it as a read-only probe in a test.
+- **Tailwind silently emits nothing for off-scale classes** (`h-4.5`, `bg-accent/12`).
+  Two real rendering bugs came from this. Verify new UI by grepping the built
+  `client/dist/assets/*.css` for the utilities the page depends on.
+
+### What is verified, and what is not
+
+Verified against the real stack (Postgres, Redis, Docker judge): **67 unit + 23 e2e
+tests**, plus per-step API checks — step 10: 47/47, uploads: 32/32, step 11: 48/48,
+step 12: 69/69 + 29/29, step 13: 33/33, step 14: 70/70. Lint and type-check clean.
+
+**Not verified programmatically:** there is no browser test tooling in this project, so
+nothing renders in a headless browser during checks. The user has confirmed the app
+visually. Light theme is contrast-validated by computation and confirmed by eye.
+
+### Remaining work
+
+1. The corrections the user is about to describe.
+2. Milestone 10 go-live — the Oracle Cloud VM runbook. Account signups and provisioning
+   are steps only the user can perform.
+3. Milestone 11 — README and resume bullets.
+
+---
+
 ## What this project is
 
 CodeForge: a production-style Online Judge (LeetCode/Codeforces-style), built as a
