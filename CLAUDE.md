@@ -139,9 +139,14 @@ Nothing else in the pipeline cares about the language string — submissions, fi
 
 ### Git
 
-All work is on branch **`feat/ui-rebuild-steps-1-12`** (3 commits), **not merged to
-`main`**. `main` is still at the initial commit. Merge with:
-`git checkout main && git merge feat/ui-rebuild-steps-1-12`
+**Merged and pushed** (12 Aug 2026). `main` and `feat/ui-rebuild-steps-1-12` both sit at
+`2ec3a64` on `origin` (github.com/akash28007/CodeForge). Working tree clean.
+
+Until that push, GitHub held only the initial scaffold commit — the entire app was local,
+including `server/tsconfig.build.json`, `client/vercel.json` and three migrations. Both
+deploy targets pull from GitHub (Vercel imports the repo; the runbook does `git clone`), so
+deployment would have shipped the scaffold. **Push before deploying, and re-check after any
+local fix** — the same trap resets every time work is left uncommitted.
 
 ### Running it locally
 
