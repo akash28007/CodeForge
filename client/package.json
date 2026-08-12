@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx"
+    "lint": "eslint . --ext ts,tsx",
+    "check:ui": "node tools/check-contrast.mjs && node tools/check-ink.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

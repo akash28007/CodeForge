@@ -16,6 +16,15 @@ export interface HomeCopy {
   coursesViewAllHref: string;
   reviewsHeading: string;
   reviewsViewAllHref: string;
+  statsHeading: string;
+  howHeading: string;
+  howStep1Title: string;
+  howStep1Body: string;
+  howStep2Title: string;
+  howStep2Body: string;
+  howStep3Title: string;
+  howStep3Body: string;
+  topicsHeading: string;
   marqueeCaption: string;
   contactHeading: string;
   contactPhone: string;
@@ -37,13 +46,25 @@ export interface CourseCard {
   order: number;
 }
 
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface Review {
   id: string;
   name: string;
+  /** Self-described role ("Student", "SDE @ Acme"). Null on older rows. */
+  designation: string | null;
   avatarUrl: string | null;
   rating: number;
   body: string;
   order: number;
+  createdAt: string;
+  status: ReviewStatus;
+  published: boolean;
+  authorId: string | null;
+  /** Null for admin-authored rows, which have no account behind them. */
+  authorUsername: string | null;
+  /** Derived server-side from an ACCEPTED submission — never self-declared. */
+  verified: boolean;
 }
 
 export interface Company {
@@ -70,8 +91,26 @@ export interface FooterLink {
   order: number;
 }
 
+/**
+ * Live counters, computed server-side on every read — never stored, never rounded.
+ * Catalogue facts only: no submission or account activity, see docs/DECISIONS.md.
+ */
+export interface PlatformStats {
+  problems: number;
+  testCases: number;
+  topics: number;
+  resources: number;
+}
+
+export interface TopicCount {
+  name: string;
+  count: number;
+}
+
 export interface HomePayload {
   content: HomeCopy;
+  stats: PlatformStats;
+  topics: TopicCount[];
   courses: CourseCard[];
   reviews: Review[];
   companies: Company[];

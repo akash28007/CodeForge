@@ -1,4 +1,4 @@
-import { FooterColumn, SocialPlatform } from '@prisma/client';
+import { FooterColumn, ReviewStatus, SocialPlatform } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -36,6 +36,18 @@ export class UpdateHomeContentDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) reviewsHeading?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) reviewsViewAllHref?: string;
 
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) statsHeading?: string;
+
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) howHeading?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(60) howStep1Title?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(300) howStep1Body?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(60) howStep2Title?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(300) howStep2Body?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(60) howStep3Title?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(300) howStep3Body?: string;
+
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) topicsHeading?: string;
+
   @IsOptional() @IsString() @MaxLength(160) marqueeCaption?: string;
 
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) contactHeading?: string;
@@ -72,6 +84,7 @@ export class UpdateCourseCardDto {
 
 export class CreateReviewDto {
   @IsString() @IsNotEmpty() @MaxLength(80) name!: string;
+  @IsOptional() @IsString() @MaxLength(80) designation?: string | null;
   @IsOptional() @IsString() @MaxLength(500) avatarUrl?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5) rating?: number;
   @IsString() @IsNotEmpty() @MaxLength(600) body!: string;
@@ -81,11 +94,24 @@ export class CreateReviewDto {
 
 export class UpdateReviewDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(80) name?: string;
+  @IsOptional() @IsString() @MaxLength(80) designation?: string | null;
   @IsOptional() @IsString() @MaxLength(500) avatarUrl?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5) rating?: number;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(600) body?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) order?: number;
   @IsOptional() @IsBoolean() published?: boolean;
+  @IsOptional() @IsEnum(ReviewStatus) status?: ReviewStatus;
+}
+
+/**
+ * What a signed-in user may write. Deliberately narrower than the admin DTO: no `name`,
+ * `avatarUrl`, `published` or `status` — identity comes from the account and visibility
+ * is a moderation decision, so neither is the submitter's to set.
+ */
+export class SubmitReviewDto {
+  @IsOptional() @IsString() @MaxLength(80) designation?: string | null;
+  @Type(() => Number) @IsInt() @Min(1) @Max(5) rating!: number;
+  @IsString() @IsNotEmpty() @MaxLength(600) body!: string;
 }
 
 export class CreateCompanyDto {

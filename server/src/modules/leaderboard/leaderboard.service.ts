@@ -56,7 +56,7 @@ export class LeaderboardService {
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: [...aggregates.keys()] } },
-      select: { id: true, name: true, username: true },
+      select: { id: true, name: true, username: true, avatarUrl: true },
     });
     const levels = await this.config.levels();
 
@@ -68,6 +68,7 @@ export class LeaderboardService {
           userId: user.id,
           name: user.name,
           username: user.username,
+          avatarUrl: user.avatarUrl,
           xp: stats.xp,
           level: progress.level,
           solvedCount: stats.solved,

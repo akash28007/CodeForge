@@ -107,6 +107,75 @@ Open the `User` table, change `role` from `USER` to `ADMIN`, save.
 
 ## Current catalog
 
-15 problems ship in the seed file — 8 Easy, 5 Medium, 2 Hard — spanning arrays,
-strings, math, dynamic programming, binary search, hashing, matrix, and
-two-pointers. Every one has been verified end-to-end against the real Docker judge.
+**111 problems** — 48 Easy, 42 Medium, 21 Hard, 529 test cases — across 19 topics:
+arrays, strings, math, number theory, dynamic programming, knapsack, greedy,
+binary search, two pointers, hashing, sorting, prefix sums, bit manipulation,
+recursion, matrix, stack, graphs, implementation and basics.
+
+Every problem has been verified end-to-end against the real Docker judge.
+
+---
+
+## 4. The authoring pipeline (how the bulk of the catalog was built)
+
+Hand-typing expected outputs does not survive contact with a hundred problems — one
+typo silently creates a problem nobody can solve. So most of the catalog is generated:
+each entry ships a **reference solution**, and the expected outputs are whatever that
+solution actually prints.
+
+```
+server/tools/problems/
+├── catalog/            authored problems, grouped by topic
+├── build-problems.mjs  runs the reference solutions → writes seed-data/problems.json
+└── verify-catalog.mjs  submits every reference solution to the real judge
+```
+
+### Adding problems this way
+
+Add an entry to a file in `catalog/` (or create a new one — every `.mjs` file there is
+picked up automatically):
+
+```js
+{
+  title: 'Array Sum',
+  difficulty: 'EASY',
+  statement: '...',
+  constraints: '...',
+  inputFormat: '...',
+  outputFormat: '...',
+  tags: ['arrays', 'basics'],
+  visible: 2,               // first 2 tests are non-hidden; the rest are hidden
+  timeLimit: 1000,          // optional, defaults to 1000ms
+  memoryLimit: 256,         // optional, defaults to 256MB
+  solution: `#include <bits/stdc++.h> ...`,   // reference solution, C++
+  tests: ['5\n1 2 3 4 5', '1\n-7'],           // inputs only — outputs are generated
+}
+```
+
+Then:
+
+```
+cd server
+node tools/problems/build-problems.mjs        # or pass a filename fragment
+npm run db:seed
+node tools/problems/verify-catalog.mjs        # needs the API + Docker running
+```
+
+**`tests[0]` becomes the worked example** shown on the problem page, so keep it small
+enough to follow by eye. The sample output is generated from it too, which means the
+sample can never disagree with what the judge expects.
+
+The builder compiles each reference solution inside the real `codeforge-executor` image
+and refuses to continue if one fails to compile, crashes, or prints nothing — so a
+broken entry is caught at build time rather than by a user.
+
+Entries already in `problems.json` are preserved unless the catalog redefines the same
+title, so the originals are never clobbered.
+
+### Why verify separately
+
+The builder guarantees the expected output matches what the reference prints. It says
+nothing about whether the problem is solvable **under the judge's limits** — a correct
+solution can still exceed the time or memory cap on the largest test. `verify-catalog.mjs`
+submits every reference solution through the real API and asserts `ACCEPTED`, which is
+the check that catches an unsolvable problem. It cleans up its throwaway account after.

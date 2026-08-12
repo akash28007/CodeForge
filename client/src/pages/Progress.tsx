@@ -46,16 +46,22 @@ const RANGES = [
   { value: 'week', label: 'This Week' },
 ];
 
+/*
+ * Graphics use the theme-independent "--c-bar-*" set: a donut segment and a progress bar
+ * are not text, so they are not bound by the 4.5:1 rule that forces the light theme's
+ * difficulty *labels* to be dark. Labels elsewhere still use "text-easy" and friends,
+ * which do change per theme.
+ */
 const difficultyColor: Record<string, string> = {
-  EASY: 'rgb(var(--c-easy))',
-  MEDIUM: 'rgb(var(--c-medium))',
-  HARD: 'rgb(var(--c-hard))',
+  EASY: 'rgb(var(--c-bar-easy))',
+  MEDIUM: 'rgb(var(--c-bar-medium))',
+  HARD: 'rgb(var(--c-bar-hard))',
 };
 
 const difficultyBar: Record<string, string> = {
-  EASY: 'bg-easy',
-  MEDIUM: 'bg-medium',
-  HARD: 'bg-hard',
+  EASY: 'bg-barEasy',
+  MEDIUM: 'bg-barMedium',
+  HARD: 'bg-barHard',
 };
 
 function formatDuration(ms: number | null): string {

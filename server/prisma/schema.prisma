@@ -4,6 +4,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  /// Use Neon's **direct** connection string in production, not the pooled one. The app
+  /// runs as a single long-lived process on one VM and Prisma manages its own pool, so
+  /// the PgBouncer endpoint buys nothing — and `prisma migrate deploy` cannot run through
+  /// it, failing with a prepared-statement error that reads like a syntax problem.
   url      = env("DATABASE_URL")
 }
 
@@ -74,6 +78,10 @@ model User {
   /// registration — a freshly registered account has this null until then.
   username     String?      @unique
   bio          String?
+  /// Path to an uploaded avatar (`/uploads/<uuid>.<ext>`), or null for the initials
+  /// fallback. Only ever written by the avatar upload endpoint — never accepted as a
+  /// free-text URL, so it cannot be pointed at an arbitrary third-party image.
+  avatarUrl    String?
   /// Incremented when someone other than the owner opens the profile.
   profileViews Int          @default(0)
   password     String
@@ -93,6 +101,7 @@ model User {
   preferences  UserPreferences?
   auditLogs    AuditLog[]
   pathSteps    LearningPathStepCompletion[]
+  reviews      Review[]
 }
 
 model Notification {
@@ -327,6 +336,23 @@ model HomeContent {
   reviewsHeading     String
   reviewsViewAllHref String
 
+  /// Caption above the live counters. The numbers themselves are never stored — they
+  /// are computed from the database on every read, so this row cannot go stale.
+  statsHeading String @default("CodeForge by the numbers")
+
+  /// Three-step "how it works" explainer. Stored as flat columns rather than a child
+  /// table because there are exactly three and they are copy, not a collection an
+  /// admin adds to.
+  howHeading    String @default("How CodeForge works")
+  howStep1Title String @default("Pick a problem")
+  howStep1Body  String @default("Filter by topic, difficulty or what you have not solved yet. Every problem states its limits up front.")
+  howStep2Title String @default("Write and run C++")
+  howStep2Body  String @default("Draft in the editor and run against the sample input before you commit to a submission.")
+  howStep3Title String @default("Get judged for real")
+  howStep3Body  String @default("Your code compiles and runs in an isolated container against hidden tests, with real time and memory limits.")
+
+  topicsHeading String @default("Practise by topic")
+
   marqueeCaption String
 
   contactHeading String
@@ -359,17 +385,41 @@ model CourseCard {
   @@index([order])
 }
 
+/// Moderation lifecycle for a review. Distinct from `published`, which stays the plain
+/// visibility switch shared by every other homepage row: an admin can unpublish an
+/// APPROVED review without pretending it was never approved, and a REJECTED one can
+/// never become visible by someone flipping the publish toggle.
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Review {
-  id        String  @id @default(uuid())
-  name      String
-  avatarUrl String?
+  id          String       @id @default(uuid())
+  name        String
+  /// Free text the author supplies ("Student", "SDE @ Acme"). Not validated against
+  /// anything — it is a self-description, not a claim the platform vouches for.
+  designation String?
+  avatarUrl   String?
   /// 1–5. Rendered as stars plus the numeric value beside them.
-  rating    Int     @default(5)
-  body      String
-  order     Int     @default(0)
-  published Boolean @default(true)
+  rating      Int          @default(5)
+  body        String
+  order       Int          @default(0)
+  published   Boolean      @default(true)
+  /// APPROVED by default so admin-authored and seeded rows behave exactly as before.
+  /// User submissions are created PENDING explicitly.
+  status      ReviewStatus @default(APPROVED)
+  /// Set when the review came from a registered account. The author's picture and the
+  /// "Verified Learner" chip are resolved through this at read time rather than copied,
+  /// so changing your profile photo updates your review too.
+  authorId    String?
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
 
   @@index([order])
+  @@index([status])
+  @@index([authorId])
 }
 
 model Company {

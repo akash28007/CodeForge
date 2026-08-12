@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGamification } from '../context/GamificationContext';
 import ProfileDropdown from './ProfileDropdown';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 import SearchInput from './ui/SearchInput';
 import { ButtonLink } from './ui/Button';
 import { IconBarChart, IconClipboard, IconFlame, IconMenu, IconTrophy, IconX, LogoMark } from './icons';
@@ -69,8 +70,8 @@ export default function Navbar() {
         </button>
 
         <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="CodeForge home">
-          <LogoMark className="h-7 w-7" />
-          <span className="text-lg font-extrabold tracking-tight text-primary">CodeForge</span>
+          <LogoMark className="h-7 w-auto" />
+          <span className="text-lg font-extrabold tracking-tight text-brand-gradient">CodeForge</span>
         </Link>
 
         <span className="mx-1 hidden h-5 w-px bg-subtle md:block" aria-hidden="true" />
@@ -101,11 +102,15 @@ export default function Navbar() {
             placeholder="Search problems..."
             shortcut={['Ctrl', 'K']}
             aria-label="Search problems"
-            containerClassName="py-1.5"
+            containerClassName="py-1"
           />
         </form>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
+          {/* Outside the signed-in branch on purpose: the theme is a device preference
+              stored in localStorage, so a visitor with no account still gets it. */}
+          <ThemeToggle />
+
           {user ? (
             <>
               {summary && summary.streak.current > 0 && (

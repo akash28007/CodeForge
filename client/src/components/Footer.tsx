@@ -133,8 +133,8 @@ export default function Footer() {
       <div className="mx-auto grid max-w-[1400px] gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="sm:col-span-2 lg:col-span-1">
           <Link to="/" className="flex items-center gap-2" aria-label="CodeForge home">
-            <LogoMark className="h-7 w-7" />
-            <span className="text-lg font-extrabold tracking-tight text-primary">CodeForge</span>
+            <LogoMark className="h-7 w-auto" />
+            <span className="text-lg font-extrabold tracking-tight text-brand-gradient">CodeForge</span>
           </Link>
           <p className="mt-3 max-w-xs text-sm text-secondary">{content.footerTagline}</p>
         </div>

@@ -7,9 +7,126 @@ This file is the handoff from planning done in claude.ai chat. Read this fully b
 ## CURRENT STATE — read this first (last updated: 11 Aug 2026)
 
 **Everything is built and verified.** Milestones 1–10 and all 14 steps of the UI/UX
-rebuild are complete. The user has clicked through the running app and confirmed it
-looks solid. The next work is a set of **corrections they will describe** — ask what
-they are; do not guess or start rewriting things.
+rebuild are complete.
+
+### Deployment
+
+The runbook is [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — a real file now; it had only
+ever existed in a chat transcript. Code and config are deploy-ready and verified; what
+remains is account signups only the owner can perform.
+
+**Progress**: Neon and Upstash are done. Oracle Cloud would not let the user log in, so
+the VM section now documents **AWS EC2 as Option A** alongside Oracle as Option B. The
+AWS path needs two non-obvious adjustments that are easy to miss and hard to diagnose:
+a **1 GB `t3.micro` cannot run `EXEC_QUEUE_CONCURRENCY=4`** (one compile container alone
+requests 512 MB), so it drops to 1 plus 2 GB of swap; and an **Elastic IP is mandatory**
+because the HTTPS hostname is derived from the public IP, which EC2 changes on stop/start.
+Also note AWS's free window expires, unlike Oracle's.
+
+Three blockers were found and fixed during the go-live audit, all of which only surface in
+a production build:
+- **`npm run start:prod` had never worked.** `nest build` emitted `dist/src/main.js`
+  because no `rootDir` was set. Fixed with `tsconfig.build.json`; the incremental cache
+  now lives inside `dist` so `deleteOutDir` cannot leave tsc thinking the output is
+  current and emitting nothing.
+- **Every rate limit was inert.** `ThrottlerModule.forRoot()` was registered but no
+  `ThrottlerGuard` was bound, so all six `@Throttle()` decorators did nothing. Proven by
+  firing 115 requests and getting 115 × 200; now 99 × 200 then 429.
+- **Login and register had no limit at all**, only the global 100/min — 144k password
+  guesses a day per IP. Now 10/min each.
+
+`client/vercel.json` handles SPA routing; without it every deep link 404s.
+
+### Corrections pass — in progress
+
+The user listed ten corrections after clicking through the finished app. Rationale for
+each is in [`docs/DECISIONS.md`](docs/DECISIONS.md) under "Corrections pass".
+
+| # | Correction | Status |
+|---|---|---|
+| 1 | Theme toggle in the top bar, signed in or not | **done** |
+| 2 | User profile pictures | **done** — migration `add_user_avatar`, 17/17 checks |
+| 3 | Distinct badge art + no horizontal scroll | **done** |
+| 4 | How profile views are counted | **done** — signed-in viewers, deduped per day, 11/11 checks |
+| 5 | Split-pane divider only dragged one way | **done** — missing `min-w-0` |
+| 6 | More languages | **open** — Java rejected as too costly; **Python agreed if feasible** |
+| 7 | Adding course cards / reviews / companies | **done** — CMS create/edit forms, 32/32 checks |
+| 8 | Review card redesign | **done** — migration `add_review_moderation`, 23/23 checks |
+| 9 | User-submitted reviews with admin approval | **done** (same migration/checks as 8) |
+| 10 | Editing Follow Us / footer links | **done** (same CMS work as 7) |
+| 11 | Catalogue to 100+ problems | **done** — 111 problems, 96/96 new ones judged ACCEPTED |
+| 12 | Palette looked "AI generated" | **done** — ember accent replacing stock indigo-500 |
+| 13 | Longer homepage | **done** — live counters, how-it-works, topic grid |
+
+**Palette** (settled, third attempt): near-black page with a `#003af7 → #e000f0`
+gradient used as *ambience only*. Dark surfaces come from the supplied ramp
+(`#040214` base, `#1a0f3c` raised, `#3c215d` borders); light mode is near-white.
+
+Non-obvious rules, all of which have already caused a failure once:
+- `#003af7` is **2.88:1 on near-black** — never text or an icon there. Dark-mode
+  `--c-accent` is a lightened tint; the literal colour lives in `--c-grad-a`.
+- `#e000f0` is **3.87:1 on white** — never text or a fill in light mode.
+- Body copy stays near-neutral. The purple ramp is for surfaces and the heat map.
+- `--c-on-accent` and `text-canvas` carry "what goes on top of a strong fill", which
+  inverts between themes. Never hard-code `text-white` on a coloured fill.
+- The gradient appears on the wordmark and the hero headline (`.text-brand-gradient`),
+  and on primary buttons (`.btn-gradient`). Its stops are separate tokens from the
+  ambience pair, because a gradient is only as legible as its worst stop — the validator
+  checks **both** ends, never the average.
+- Buttons invert between themes: **light fill + near-black label in dark mode, deep fill
+  + white label in light mode.** On a near-black page the button is the light thing in
+  the room. Use `variant="primary"`, never a hand-rolled `bg-accent` button.
+- `--c-accent-2` (magenta) is the second accent; one accent across a page of neutrals is
+  what reads as monochromatic.
+- `--c-tone-1..6` are **decorative** tones for sets of items that should merely look
+  different (topic tiles, initials avatars). Pick one with `toneColor(name)` from
+  `utils/tone.ts` — it hashes the name, so an item keeps its colour and adding items
+  never reshuffles the rest. They encode nothing, but all six are still contrast-checked
+  because they are used for count figures.
+
+**Run `cd client && npm run check:ui` before calling any UI change done.** It is in CI.
+Two checkers:
+- `tools/check-contrast.mjs` — WCAG contrast + colour-vision ΔE for every token in both
+  themes, including gradient stops, glow-composited backgrounds and heat-ramp inks.
+- `tools/check-ink.mjs` — scans components for a strong fill paired with a text colour
+  that inverts between themes, and for hard-coded `text-white`/`bg-black`.
+
+The second exists because the *same* defect was found from screenshots four separate
+times (chip hover, notification badge, calendar cell, checkbox tick). Never hand-pair a
+solid `bg-accent`/`bg-hard`/… with a text class — use `.btn-gradient`, `.cf-checkbox`, or
+`text-on-accent`/`text-canvas`, which are defined against the fill.
+
+**Name**: staying **CodeForge**. A rename to "Vertex" was proposed and advised against —
+see `docs/DECISIONS.md`.
+
+**Brand assets**: the user-supplied mark lives in `client/public/` (`logo.png`,
+`favicon-32.png`, `apple-touch-icon.png`), generated by
+`server/tools/build-logo.ts` from the source artwork. The source arrived on a **solid
+black background**, which would render as a black rectangle in light mode, so the script
+keys that out to transparency while keeping the artwork's real colours. Icons are cropped
+to the curl because the full swoosh is 2.7:1 and its strokes vanish at 32px. Re-run the
+script if the artwork changes; do not hand-edit the PNGs. `LogoMark` renders `logo.png`
+and is sized **by height with `w-auto`** — a square box squashes it.
+
+**#6 is the only one left.** Java is out (the JVM will not start under a 256 MB `--memory`
+cap, and its filename/class-name coupling fights the sandbox's generated paths). Python is
+agreed if practical. Scope, after reading `docker-executor.service.ts` properly:
+
+- `compile()` hard-codes `g++ -O2 -o /sandbox/bin/a.out …` (line ~81) and `run()`
+  hard-codes `/sandbox/bin/a.out` (line ~136). Both need a small per-language record:
+  source filename, compile command (a syntax check for Python, so a `SyntaxError` still
+  surfaces as COMPILE_ERROR), and run command.
+- Add `python3` to the **existing** executor image rather than building a second one —
+  one image keeps the build and CI unchanged.
+- **Per-language time multipliers** are the one non-obvious requirement: Python is
+  roughly 10–50× slower, so without a multiplier several seeded problems become
+  unsolvable in it. The limits are already threaded through `run()`, so this is a
+  multiplication, not a redesign.
+- `SubmitCodeDto`'s `IsIn(['cpp'])`, the client `LANGUAGES` array, per-language
+  boilerplate, and the Monaco mode.
+
+Nothing else in the pipeline cares about the language string — submissions, filters and
+`GET /submissions/languages` already treat it as free text.
 
 ### Where the source of truth lives
 
@@ -563,9 +680,18 @@ gamification code.
 originally approved stack): `monaco-editor`, `@monaco-editor/react`. Icons are
 hand-rolled SVGs; fonts load via a `<link>`.
 
-**Problem catalogue**: 15 seeded problems, bulk-loadable via `npm run db:seed` — see
+**Problem catalogue**: **111 problems** (48 Easy / 42 Medium / 21 Hard, 529 test cases,
+19 topics), bulk-loadable via `npm run db:seed` — see
 [`docs/ADDING_PROBLEMS.md`](docs/ADDING_PROBLEMS.md). Every seeded problem has been
 verified end-to-end against the real Docker judge.
+
+Most of the catalogue is **generated, not hand-written**, by the authoring pipeline in
+`server/tools/problems/`: each entry ships a reference solution, and expected outputs
+are whatever that solution actually prints when executed in the real executor image.
+Hand-typed expected outputs do not survive a hundred problems — one typo silently
+creates an unsolvable problem. `verify-catalog.mjs` then submits every reference
+solution through the real API and asserts ACCEPTED, which is what catches a problem that
+is correct but breaches the time or memory limit.
 
 ## Folder structure (already scaffolded)
 

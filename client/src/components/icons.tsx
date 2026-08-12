@@ -28,27 +28,19 @@ function Stroke({ className = base, children }: { className?: string; children: 
  * CodeForge mark — a stylized anvil+bracket. Deliberately NOT a shield (guide §1).
  * Swap this one component to replace the logo everywhere.
  */
-export function LogoMark({ className = 'w-7 h-7' }: IconProps) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id="cf-logo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="rgb(var(--c-accent-soft))" />
-          <stop offset="100%" stopColor="rgb(var(--c-accent))" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill="url(#cf-logo)" />
-      <path
-        d="M12.5 10.5 8.5 16l4 5.5M19.5 10.5 23.5 16l-4 5.5"
-        fill="none"
-        stroke="white"
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M17.6 9.2 14.4 22.8" stroke="white" strokeWidth={2.2} strokeLinecap="round" opacity={0.85} />
-    </svg>
-  );
+/**
+ * The supplied brand mark, served from `public/logo.png`.
+ *
+ * The source artwork arrived on a solid black background, which would have rendered as a
+ * black rectangle on the light theme. `server/build-logo.ts` keys that background out to
+ * transparency while preserving the artwork's real colours, so one asset works on both
+ * grounds and no per-theme variant is needed.
+ *
+ * The mark is 2.7:1, so callers size it by *height* and leave the width automatic —
+ * forcing it into a square box would squash it.
+ */
+export function LogoMark({ className = 'h-7 w-auto' }: IconProps) {
+  return <img src="/logo.png" alt="" aria-hidden="true" className={className} draggable={false} />;
 }
 
 export const IconCode = ({ className }: IconProps) => (
@@ -278,6 +270,19 @@ export const IconLock = ({ className }: IconProps) => (
   <Stroke className={className}>
     <rect x="5" y="10" width="14" height="10" rx="2" />
     <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </Stroke>
+);
+
+export const IconSun = ({ className }: IconProps) => (
+  <Stroke className={className}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </Stroke>
+);
+
+export const IconMoon = ({ className }: IconProps) => (
+  <Stroke className={className}>
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
   </Stroke>
 );
 

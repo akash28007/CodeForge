@@ -13,8 +13,11 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(function Sear
   ref,
 ) {
   return (
+    // Pill-shaped and shorter than the default control height: the search box is a
+    // persistent element in the top bar, so it should sit lighter than the buttons beside
+    // it rather than matching their weight.
     <div
-      className={`flex items-center gap-2 rounded-lg border border-subtle bg-surface px-3 py-2 focus-within:border-accent transition-colors ${containerClassName}`}
+      className={`flex items-center gap-2 rounded-full border border-subtle bg-surface px-3 py-1 focus-within:border-accent transition-colors ${containerClassName}`}
     >
       <IconSearch className="w-4 h-4 text-muted shrink-0" />
       <input

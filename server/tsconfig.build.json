@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Without this, TypeScript infers the root from every included file — which pulls in
+    // `test/` and `tools/` and pushes the output down to `dist/src/main.js`. That is why
+    // `npm run start:prod` (`node dist/main`) had never worked: the path did not exist.
+    "rootDir": "src",
+    /*
+     * Keep the incremental cache *inside* the output directory. Nest's `deleteOutDir`
+     * wipes `dist` on every build; with the cache outside it, tsc concludes the output is
+     * still current and emits nothing — a build that "succeeds" and produces no bundle.
+     * Putting them together means the cache dies with the output it describes.
+     */
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  /*
+   * Paths are `./`-prefixed deliberately. A bare "prisma" also matches `src/prisma/`,
+   * which silently dropped PrismaModule from the bundle — the build succeeded and the
+   * app then died at startup with MODULE_NOT_FOUND.
+   */
+  "exclude": ["./node_modules", "./dist", "./test", "./tools", "./prisma", "**/*.spec.ts", "**/*.e2e-spec.ts"]
+}

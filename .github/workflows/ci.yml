@@ -113,6 +113,13 @@ jobs:
         working-directory: client
         run: npx eslint . --ext ts,tsx
 
+      # Contrast/colour-vision of the design tokens, plus a scan for components pairing a
+      # strong fill with a text colour that inverts between themes. Both have caught real
+      # regressions that lint and type-check cannot see.
+      - name: Check design tokens and ink pairings
+        working-directory: client
+        run: npm run check:ui
+
       - name: Type-check and build
         working-directory: client
         run: npm run build

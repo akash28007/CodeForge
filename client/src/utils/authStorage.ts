@@ -3,6 +3,8 @@ export interface StoredUser {
   name: string;
   email: string;
   role: 'USER' | 'ADMIN';
+  /** Absent on sessions stored before avatars existed — treat as "no picture". */
+  avatarUrl?: string | null;
 }
 
 export interface StoredAuth {

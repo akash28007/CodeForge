@@ -55,7 +55,7 @@ export default function NotificationBell() {
       >
         <IconBell className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-hard px-1 text-[9px] font-bold text-white">
+          <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-hard px-1 text-[9px] font-bold text-canvas">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

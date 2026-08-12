@@ -290,7 +290,7 @@ export default function ProblemForm() {
         <button
           type="submit"
           disabled={saving}
-          className="bg-accent hover:bg-accent-soft disabled:opacity-50 rounded-md px-4 py-2 font-medium text-white shadow-glow self-start transition-colors"
+          className="btn-gradient disabled:opacity-50 rounded-md px-4 py-2 font-medium shadow-glow self-start"
         >
           {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create problem'}
         </button>

@@ -5,6 +5,8 @@ interface CarouselProps<T> {
   items: T[];
   /** How many cards are visible at the widest breakpoint (guide §3.2 = 4, §3.3 = 3). */
   perView: number;
+  /** Overrides the narrow-screen card width for cards that need more room. */
+  cardClassName?: string;
   renderItem: (item: T, index: number) => ReactNode;
   keyOf: (item: T) => string;
   label: string;
@@ -18,7 +20,14 @@ interface CarouselProps<T> {
  * are only a convenience on top. `perView` sets the card width via a CSS variable so
  * the same component drives both the 4-up course row and the 3-up review row.
  */
-export default function Carousel<T>({ items, perView, renderItem, keyOf, label }: CarouselProps<T>) {
+export default function Carousel<T>({
+  items,
+  perView,
+  renderItem,
+  keyOf,
+  label,
+  cardClassName = 'w-[min(80vw,320px)]',
+}: CarouselProps<T>) {
   const trackRef = useRef<HTMLUListElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -76,7 +85,7 @@ export default function Carousel<T>({ items, perView, renderItem, keyOf, label }
         {items.map((item, index) => (
           <li
             key={keyOf(item)}
-            className="w-[min(80vw,320px)] shrink-0 snap-start lg:w-[calc((100%-(var(--per-view)-1)*1rem)/var(--per-view))]"
+            className={`${cardClassName} shrink-0 snap-start lg:w-[calc((100%-(var(--per-view)-1)*1rem)/var(--per-view))]`}
           >
             {renderItem(item, index)}
           </li>

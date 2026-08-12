@@ -25,6 +25,17 @@ export default {
         secondary: token('secondary'),
         muted: token('muted'),
         // brand
+        // Foreground for anything sitting on an accent fill. With a light accent the
+        // legible choice is near-black, with a dark one it is white — the token holds
+        // that decision so components never hard-code `text-white`.
+        'on-accent': token('on-accent'),
+        // Secondary accent, the magenta end of the brand gradient. Exists so chips,
+        // badges and figures have somewhere to go other than the one blue.
+        accent2: token('accent-2'),
+        // Difficulty fills for charts. Identical in both themes — see index.css.
+        barEasy: token('bar-easy'),
+        barMedium: token('bar-medium'),
+        barHard: token('bar-hard'),
         accent: {
           DEFAULT: token('accent'),
           soft: token('accent-soft'),

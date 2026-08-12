@@ -6,7 +6,7 @@ import { useDismiss } from '../hooks/useOutsideClick';
 import LevelBadge from './LevelBadge';
 import ProgressBar from './ui/ProgressBar';
 import Avatar from './ui/Avatar';
-import { IconBarChart, IconChevronDown, IconLogOut, IconPieChart, IconSettings, IconStar, IconUser } from './icons';
+import { IconBarChart, IconChevronDown, IconLogOut, IconPieChart, IconSettings, IconStar } from './icons';
 
 interface MenuItem {
   to: string;
@@ -48,7 +48,9 @@ export default function ProfileDropdown() {
         aria-label="Open profile menu"
         className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm text-secondary hover:bg-raised hover:text-primary transition-colors"
       >
-        <IconUser className="w-4 h-4" />
+        {/* The picture itself is the trigger — it's the most visible place a user's
+            avatar can appear, and it confirms at a glance whose session this is. */}
+        <Avatar name={user.name} src={user.avatarUrl} size="sm" />
         <span className="hidden lg:inline">Profile</span>
         <IconChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -64,7 +66,7 @@ export default function ProfileDropdown() {
           >
             <div className="p-4">
               <div className="flex items-center gap-3">
-                <Avatar name={user.name} size="md" />
+                <Avatar name={user.name} src={user.avatarUrl} size="md" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-semibold text-primary">{user.name}</p>

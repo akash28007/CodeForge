@@ -13,8 +13,8 @@ export default function AuthCard({ title, subtitle, children, footer }: AuthCard
   return (
     <div className="mx-auto mt-6 w-full max-w-sm">
       <Link to="/" className="mb-6 flex flex-col items-center gap-3">
-        <LogoMark className="h-11 w-11" />
-        <span className="text-xl font-extrabold tracking-tight text-primary">CodeForge</span>
+        <LogoMark className="h-10 w-auto" />
+        <span className="text-xl font-extrabold tracking-tight text-brand-gradient">CodeForge</span>
       </Link>
 
       <div className="rounded-xl border border-subtle bg-surface p-6">

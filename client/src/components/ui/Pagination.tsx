@@ -53,7 +53,9 @@ export default function Pagination({ page, pageSize, total, onPageChange, classN
               onClick={() => onPageChange(entry)}
               aria-current={entry === page ? 'page' : undefined}
               className={`min-w-[2rem] rounded-md px-2 py-1 text-sm transition-colors ${
-                entry === page ? 'bg-accent text-white font-semibold' : 'text-secondary hover:bg-raised hover:text-primary'
+                entry === page
+                  ? 'btn-gradient font-semibold'
+                  : 'text-secondary hover:bg-raised hover:text-primary'
               }`}
             >
               {entry}

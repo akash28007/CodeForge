@@ -31,6 +31,21 @@ export const defaultHomeContent: Prisma.HomeContentCreateInput = {
   reviewsHeading: 'Reviews',
   reviewsViewAllHref: '/leaderboard',
 
+  statsHeading: 'CodeForge by the numbers',
+
+  howHeading: 'How CodeForge works',
+  howStep1Title: 'Pick a problem',
+  howStep1Body:
+    'Filter by topic, difficulty or what you have not solved yet. Every problem states its time and memory limits up front.',
+  howStep2Title: 'Write and run C++',
+  howStep2Body:
+    'Draft in the editor and run against the sample input as many times as you like before committing to a submission.',
+  howStep3Title: 'Get judged for real',
+  howStep3Body:
+    'Your code compiles and runs inside an isolated container against hidden tests, with the same limits enforced for everyone.',
+
+  topicsHeading: 'Practise by topic',
+
   marqueeCaption: 'Our learners have gone on to build at',
 
   contactHeading: 'Contact us details',
@@ -94,30 +109,35 @@ export const defaultCourseCards: Prisma.CourseCardCreateManyInput[] = [
 export const defaultReviews: Prisma.ReviewCreateManyInput[] = [
   {
     name: 'Rahul Sharma',
+    designation: 'Student',
     rating: 5,
     body: 'This platform helped me improve my problem solving skills significantly. The hidden test cases actually catch the edge cases I used to miss. Highly recommend!',
     order: 0,
   },
   {
     name: 'Priya Verma',
+    designation: 'SDE Intern',
     rating: 5,
     body: 'The explanations are clear and concise, and the editorial gating meant I actually tried before giving up. Best platform for interview preparation.',
     order: 1,
   },
   {
     name: 'Aman Singh',
+    designation: 'Final year, CSE',
     rating: 5,
     body: 'Loved the variety of problems and the active community support. The XP system kept me coming back every single day for two months.',
     order: 2,
   },
   {
     name: 'Neha Iyer',
+    designation: 'Backend Engineer',
     rating: 4,
     body: 'Real sandboxed judging makes the verdicts trustworthy. Time limits are strict but fair, which is exactly what you want before an interview.',
     order: 3,
   },
   {
     name: 'Karthik Menon',
+    designation: 'SDE-1',
     rating: 5,
     body: 'The progress page showed me I was avoiding graphs entirely. Fixed that in three weeks and cleared two on-sites.',
     order: 4,

@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync } from 'fs';
 import { unlink, writeFile } from 'fs/promises';
 import { isAbsolute, join, resolve } from 'path';
+import { trimTransparentPadding } from './png-trim';
 
 /**
  * The shape of a memory-storage multer file. Declared here rather than pulling in
@@ -103,11 +104,32 @@ export class UploadsService {
       throw new BadRequestException('Unsupported image format. Use PNG, JPEG, GIF, or WebP.');
     }
 
-    const filename = `${randomUUID()}.${signature.ext}`;
-    await writeFile(join(this.dir, filename), file.buffer);
-    this.logger.log(`Stored ${filename} (${file.size} bytes, ${signature.mime})`);
+    /*
+     * Logo files are routinely exported onto a square canvas with the mark floating in
+     * the middle, and anything that sizes them by height then renders the padding rather
+     * than the logo. Trimming here rather than at render time means every consumer gets
+     * a tight image without having to know about the problem.
+     *
+     * Only ever shrinks the canvas — the visible pixels are untouched — and any failure
+     * falls back to storing the original.
+     */
+    let data = file.buffer;
+    if (signature.ext === 'png') {
+      const trimmed = trimTransparentPadding(file.buffer);
+      if (trimmed.trimmed) {
+        data = trimmed.buffer;
+        this.logger.log(
+          `Trimmed transparent padding: ${trimmed.from!.width}x${trimmed.from!.height} → ` +
+            `${trimmed.to!.width}x${trimmed.to!.height}`,
+        );
+      }
+    }
 
-    return { url: `${UPLOAD_ROUTE_PREFIX}/${filename}`, bytes: file.size, format: signature.mime };
+    const filename = `${randomUUID()}.${signature.ext}`;
+    await writeFile(join(this.dir, filename), data);
+    this.logger.log(`Stored ${filename} (${data.length} bytes, ${signature.mime})`);
+
+    return { url: `${UPLOAD_ROUTE_PREFIX}/${filename}`, bytes: data.length, format: signature.mime };
   }
 
   /**

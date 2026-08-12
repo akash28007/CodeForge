@@ -6,11 +6,12 @@ type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent hover:bg-accent-soft text-white shadow-glow',
+  // `btn-gradient` carries its own fill, label colour and hover — see index.css.
+  primary: 'btn-gradient shadow-glow',
   secondary: 'bg-raised hover:bg-subtle text-primary',
   outline: 'border border-subtle hover:border-muted text-primary',
   ghost: 'text-secondary hover:text-primary hover:bg-raised',
-  danger: 'bg-hard/90 hover:bg-hard text-white',
+  danger: 'bg-hard/90 hover:bg-hard text-canvas',
 };
 
 const sizes: Record<Size, string> = {

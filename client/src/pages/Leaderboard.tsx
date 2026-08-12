@@ -19,6 +19,7 @@ interface Entry {
   userId: string;
   name: string;
   username: string | null;
+  avatarUrl: string | null;
   xp: number;
   level: { rank: number; name: string; minXp: number };
   solvedCount: number;
@@ -67,7 +68,7 @@ function RankCell({ rank }: { rank: number }) {
 function UserCell({ entry }: { entry: Entry }) {
   const inner = (
     <span className="flex items-center gap-2.5">
-      <Avatar name={entry.name} size="sm" />
+      <Avatar name={entry.name} src={entry.avatarUrl} size="sm" />
       <span className="min-w-0">
         <span className="block truncate font-medium text-primary">{entry.name}</span>
         {entry.username && <span className="block truncate text-xs text-muted">@{entry.username}</span>}
@@ -164,7 +165,7 @@ export default function Leaderboard() {
                       #{entry.rank}
                     </span>
                     <div className="my-2">
-                      <Avatar name={entry.name} size="lg" />
+                      <Avatar name={entry.name} src={entry.avatarUrl} size="lg" />
                     </div>
                     <p className="truncate font-semibold text-primary">{entry.name}</p>
                     <div className="mt-1.5">

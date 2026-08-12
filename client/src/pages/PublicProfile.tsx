@@ -7,7 +7,8 @@ import StatCard from '../components/ui/StatCard';
 import { ErrorState } from '../components/ui/States';
 import { SkeletonRows } from '../components/ui/Skeleton';
 import LevelBadge, { LevelBadgeIcon } from '../components/LevelBadge';
-import { levelForXp, LEVELS } from '../utils/levels';
+import BadgeArt from '../components/BadgeArt';
+import { levelForXp } from '../utils/levels';
 import type { BadgeState } from '../context/GamificationContext';
 import { IconCheckCircle, IconFlame, IconTrophy, IconUser } from '../components/icons';
 
@@ -16,6 +17,7 @@ interface PublicProfileData {
   name: string;
   username: string;
   bio: string | null;
+  avatarUrl: string | null;
   profileViews: number;
   createdAt: string;
   xp: number;
@@ -50,7 +52,7 @@ export default function PublicProfile() {
     <div className="mx-auto max-w-3xl">
       <section className="rounded-xl border border-subtle bg-surface p-6">
         <div className="flex flex-wrap items-center gap-5">
-          <Avatar name={profile.name} size="xl" />
+          <Avatar name={profile.name} src={profile.avatarUrl} size="xl" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold text-primary">{profile.name}</h1>
             <p className="text-sm text-muted">@{profile.username}</p>
@@ -103,11 +105,11 @@ export default function PublicProfile() {
           <p className="py-4 text-center text-sm text-muted">No badges earned yet.</p>
         ) : (
           <div className="flex flex-wrap gap-4">
-            {profile.badges.map((badge, i) => (
+            {profile.badges.map((badge) => (
               <div key={badge.code} className="flex w-24 flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-raised ring-1 ring-subtle">
-                  <LevelBadgeIcon level={LEVELS[Math.min(i, LEVELS.length - 1)]} className="h-8 w-8" />
-                </div>
+                {/* Same art component as the owner's Progress page, so a badge is
+                    recognisable as the same badge wherever it appears. */}
+                <BadgeArt code={badge.code} criteria={badge.criteria} className="h-14 w-14" />
                 <p className="mt-1.5 text-xs font-semibold text-primary">{badge.name}</p>
                 <p className="text-[10px] leading-tight text-muted">{badge.description}</p>
               </div>

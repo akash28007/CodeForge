@@ -1,3 +1,6 @@
+import { assetUrl } from '../../utils/assetUrl';
+import { toneColor } from '../../utils/tone';
+
 interface AvatarProps {
   name: string;
   src?: string | null;
@@ -24,20 +27,33 @@ export function initialsOf(name: string): string {
 }
 
 export default function Avatar({ name, src, size = 'md', className = '' }: AvatarProps) {
-  if (src) {
+  // Resolved here rather than at every call site, so no caller can forget it.
+  const resolved = assetUrl(src);
+
+  if (resolved) {
     return (
       <img
-        src={src}
+        src={resolved}
         alt={name}
         className={`shrink-0 rounded-full object-cover ring-1 ring-subtle ${sizes[size]} ${className}`}
       />
     );
   }
 
+  // Initials fall back to a tone derived from the name rather than one shared accent —
+  // a column of identical circles was a large part of what read as monochrome.
+  const tone = toneColor(name);
+
   return (
     <span
       aria-label={name}
-      className={`flex shrink-0 items-center justify-center rounded-full bg-accent/20 font-bold text-accent-soft ring-1 ring-accent/30 ${sizes[size]} ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold ring-1 ${sizes[size]} ${className}`}
+      style={{
+        backgroundColor: toneColor(name, 0.18),
+        color: tone,
+        // `ring` colour cannot come from a style prop, so the ring is drawn here too.
+        boxShadow: `inset 0 0 0 1px ${toneColor(name, 0.35)}`,
+      }}
     >
       {initialsOf(name)}
     </span>

@@ -134,7 +134,11 @@ export class HomeAdminController {
       action: 'update',
       entity: 'Review',
       entityId: review.id,
-      summary: `Updated review by "${review.name}"`,
+      // A moderation decision is the thing worth being able to find in the log later,
+      // so it is named explicitly rather than logged as a generic "updated".
+      summary: dto.status
+        ? `${dto.status === 'APPROVED' ? 'Approved' : dto.status === 'REJECTED' ? 'Rejected' : 'Reset to pending'} review by "${review.name}"`
+        : `Updated review by "${review.name}"`,
     });
     return review;
   }

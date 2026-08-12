@@ -100,10 +100,17 @@ export default function ActivityCalendar({ days, selected, onSelect }: ActivityC
               className={`relative flex h-7 w-7 items-center justify-center rounded-full text-xs tabular-nums transition-colors ${
                 isSelected ? 'ring-2 ring-accent' : ''
               } ${isToday && !isSelected ? 'ring-1 ring-muted' : ''} ${
-                count > 6
-                  ? 'font-semibold text-[rgb(var(--c-base))]' // lightest ramp step needs dark ink
+                /*
+                 * Ink flips at the same ramp step in both themes, which is why two
+                 * classes suffice: steps 1-2 are the dark end in dark mode and the
+                 * light end in light mode, so `primary` is legible on both; steps 3-4
+                 * are the reverse, where `canvas` is. Hard-coding white failed on the
+                 * light theme's pale low steps.
+                 */
+                count > 3
+                  ? 'font-semibold text-canvas'
                   : count > 0
-                    ? 'font-semibold text-white'
+                    ? 'font-semibold text-primary'
                     : 'text-secondary hover:bg-raised'
               }`}
               style={count > 0 ? { backgroundColor: `rgb(${intensityVar(count)})` } : undefined}

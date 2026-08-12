@@ -9,7 +9,11 @@
 - [x] 7. Docker execution (sandboxed compile/run, see security notes below)
 - [x] 8. Leaderboard
 - [x] 9. Testing (unit + e2e) and CI/CD pipeline
-- [ ] 10. Deployment (Vercel / Render / Neon / Upstash)
+- [~] 10. Deployment — client→Vercel, Postgres→Neon, Redis→Upstash, API+judge→Oracle
+      Cloud VM, HTTPS→Caddy. **Render was ruled out**: its web services give no Docker
+      daemon, and the judge shells out to the real `docker` CLI. Code and configuration
+      are ready and verified; the remaining steps are account signups only the owner can
+      do. See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 - [ ] 11. Documentation, README and resume bullets
 
 ## Security notes for Milestone 7 (do not skip)

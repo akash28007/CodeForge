@@ -4,9 +4,10 @@ import { StatsService } from './stats.service';
 import { AnalyticsService } from './analytics.service';
 import { ProfileService } from './profile.service';
 import { GamificationModule } from '../gamification/gamification.module';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
-  imports: [GamificationModule],
+  imports: [GamificationModule, UploadsModule],
   controllers: [StatsController],
   providers: [StatsService, AnalyticsService, ProfileService],
   exports: [StatsService, AnalyticsService],

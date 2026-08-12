@@ -145,6 +145,7 @@ export class AdminService {
         email: true,
         username: true,
         bio: true,
+        avatarUrl: true,
         role: true,
         suspendedAt: true,
         suspendedReason: true,

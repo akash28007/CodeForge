@@ -270,8 +270,11 @@ export default function ProblemDetail() {
       className="flex flex-col gap-4 lg:h-[calc(100vh-7rem)] lg:flex-row lg:gap-0"
     >
       {/* ── left pane ── */}
+      {/* `min-w-0` is load-bearing: a flex item defaults to `min-width: auto`, so
+          without it the pane refuses to shrink below its content's intrinsic width and
+          the divider silently stops responding in that direction. */}
       <section
-        className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-subtle bg-surface"
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:shrink-0"
         style={{ flexBasis: `${ratio}%` }}
       >
         <div className="flex items-center gap-1 border-b border-subtle px-2">
@@ -411,7 +414,7 @@ export default function ProblemDetail() {
       </div>
 
       {/* ── right pane ── */}
-      <section className="flex min-h-0 flex-1 flex-col gap-3">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         <div className="flex min-h-[20rem] flex-1 flex-col overflow-hidden rounded-xl border border-subtle bg-surface">
           <div className="flex flex-wrap items-center gap-2 border-b border-subtle px-3 py-2">
             <Dropdown options={LANGUAGES} value={language} onChange={setLanguage} className="w-44" align="left" />

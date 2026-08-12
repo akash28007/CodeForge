@@ -1,5 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, SocialPlatform } from '@prisma/client';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma, ReviewStatus, SocialPlatform, SubmissionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   HOME_CONTENT_ID,
@@ -15,6 +15,7 @@ import {
   CreateCourseCardDto,
   CreateFooterLinkDto,
   CreateReviewDto,
+  SubmitReviewDto,
   SubscribeDto,
   UpdateCompanyDto,
   UpdateCourseCardDto,
@@ -54,14 +55,21 @@ const cardSelect = {
   published: true,
 } satisfies Prisma.CourseCardSelect;
 
-const reviewSelect = {
+export const reviewSelect = {
   id: true,
   name: true,
+  designation: true,
   avatarUrl: true,
   rating: true,
   body: true,
   order: true,
   published: true,
+  status: true,
+  createdAt: true,
+  authorId: true,
+  // Read through the relation rather than copying the picture onto the review, so a
+  // user who changes their profile photo changes it here too.
+  author: { select: { id: true, avatarUrl: true, username: true } },
 } satisfies Prisma.ReviewSelect;
 
 const companySelect = {
@@ -112,9 +120,11 @@ export class HomeService {
         orderBy: [{ order: 'asc' }, { title: 'asc' }],
         select: cardSelect,
       }),
+      // A review is public only when it is *both* approved and published — flipping the
+      // publish toggle can never surface something moderation rejected.
       this.prisma.review.findMany({
-        where: { published: true },
-        orderBy: [{ order: 'asc' }, { name: 'asc' }],
+        where: { published: true, status: ReviewStatus.APPROVED },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
         select: reviewSelect,
       }),
       this.prisma.company.findMany({
@@ -134,7 +144,92 @@ export class HomeService {
       }),
     ]);
 
-    return { content, courses, reviews, companies, socials, footerLinks };
+    return {
+      content,
+      courses,
+      reviews: await this.decorateReviews(reviews),
+      companies,
+      socials,
+      footerLinks,
+      stats: await this.platformStats(),
+      topics: await this.topicCounts(),
+    };
+  }
+
+  /**
+   * Live counters for the homepage strip.
+   *
+   * Counted on every read rather than cached or stored: these are cheap aggregate
+   * queries, and a stored number is a number that will eventually be wrong. Nothing
+   * here is rounded up or padded — if the catalogue has 111 problems the page says 111.
+   *
+   * Every figure describes the **catalogue**, never user activity. Submission counts
+   * were removed deliberately: on a site with few accounts a platform-wide
+   * "solutions judged / accepted" pair is effectively one person's submission history
+   * published to anonymous visitors, and it is not a number a visitor benefits from
+   * either. If a usage metric is ever wanted here it needs to be something a single
+   * user cannot be reverse-engineered from.
+   */
+  private async platformStats() {
+    const [problems, testCases, topics, resources] = await Promise.all([
+      this.prisma.problem.count(),
+      this.prisma.testCase.count(),
+      this.prisma.tag.count({ where: { problems: { some: {} } } }),
+      this.prisma.resource.count({ where: { published: true } }),
+    ]);
+    return { problems, testCases, topics, resources };
+  }
+
+  /**
+   * Topics with at least one problem, most-populated first.
+   *
+   * Tags with no problems are excluded — an empty topic tile links to an empty list,
+   * which is worse than not showing the topic at all.
+   */
+  private async topicCounts() {
+    const tags = await this.prisma.tag.findMany({
+      where: { problems: { some: {} } },
+      select: { name: true, _count: { select: { problems: true } } },
+    });
+    return tags
+      .map((t) => ({ name: t.name, count: t._count.problems }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Resolves the two review fields that are derived rather than stored.
+   *
+   * `avatarUrl` falls back to the author's live profile picture, and `verified` means
+   * "this account has actually solved something here" — computed from ACCEPTED
+   * submissions, never self-declared, so the chip cannot be claimed by typing it into a
+   * form. Both are resolved in one extra query for the whole batch, not per row.
+   */
+  private async decorateReviews<
+    T extends {
+      authorId: string | null;
+      avatarUrl: string | null;
+      author: { avatarUrl: string | null; username: string | null } | null;
+    },
+  >(rows: T[]) {
+    const authorIds = [...new Set(rows.map((r) => r.authorId).filter((id): id is string => id !== null))];
+
+    const verified = new Set<string>();
+    if (authorIds.length > 0) {
+      const solvers = await this.prisma.submission.groupBy({
+        by: ['userId'],
+        where: { userId: { in: authorIds }, status: SubmissionStatus.ACCEPTED },
+      });
+      solvers.forEach((s) => verified.add(s.userId));
+    }
+
+    return rows.map(({ author, ...review }) => ({
+      ...review,
+      avatarUrl: author?.avatarUrl ?? review.avatarUrl,
+      verified: review.authorId !== null && verified.has(review.authorId),
+      // Lets the card link to the writer's public profile. Null for admin-authored rows,
+      // which have no account behind them and therefore no profile to open.
+      authorUsername: author?.username ?? null,
+    }));
   }
 
   /**
@@ -250,7 +345,12 @@ export class HomeService {
 
     const [courses, reviews, companies, socials, footerLinks] = await Promise.all([
       this.prisma.courseCard.findMany({ orderBy: { order: 'asc' }, select: cardSelect }),
-      this.prisma.review.findMany({ orderBy: { order: 'asc' }, select: reviewSelect }),
+      // Pending submissions first — the moderation queue is the thing an admin opening
+      // this screen most likely needs to act on.
+      this.prisma.review.findMany({
+        orderBy: [{ status: 'asc' }, { order: 'asc' }, { createdAt: 'desc' }],
+        select: reviewSelect,
+      }),
       this.prisma.company.findMany({ orderBy: { order: 'asc' }, select: companySelect }),
       this.prisma.socialLink.findMany({ orderBy: { order: 'asc' }, select: socialSelect }),
       this.prisma.footerLink.findMany({
@@ -259,7 +359,14 @@ export class HomeService {
       }),
     ]);
 
-    return { content, courses, reviews, companies, socials, footerLinks };
+    return {
+      content,
+      courses,
+      reviews: await this.decorateReviews(reviews),
+      companies,
+      socials,
+      footerLinks,
+    };
   }
 
   async updateContent(dto: UpdateHomeContentDto) {
@@ -286,13 +393,103 @@ export class HomeService {
 
   // ───────────────────────── admin: reviews ─────────────────────────
 
-  createReview(dto: CreateReviewDto) {
-    return this.prisma.review.create({ data: dto, select: reviewSelect });
+  async createReview(dto: CreateReviewDto) {
+    const review = await this.prisma.review.create({ data: dto, select: reviewSelect });
+    return (await this.decorateReviews([review]))[0];
   }
 
   async updateReview(id: string, dto: UpdateReviewDto) {
     await this.assertExists('review', id, 'Review');
-    return this.prisma.review.update({ where: { id }, data: dto, select: reviewSelect });
+    const review = await this.prisma.review.update({ where: { id }, data: dto, select: reviewSelect });
+    return (await this.decorateReviews([review]))[0];
+  }
+
+  // ───────────────────────── user-submitted reviews ─────────────────────────
+
+  /**
+   * Submits a review for moderation.
+   *
+   * The author's display name and picture come from their account rather than the form:
+   * a review is attributed to a real profile on this site, so letting the submitter type
+   * an arbitrary name would make the attribution meaningless. Only the designation,
+   * rating and body are theirs to write.
+   */
+  async submitReview(userId: string, dto: SubmitReviewDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const existing = await this.prisma.review.findFirst({
+      where: { authorId: userId, status: { in: [ReviewStatus.PENDING, ReviewStatus.APPROVED] } },
+      select: { id: true, status: true },
+    });
+    if (existing) {
+      throw new ConflictException(
+        existing.status === ReviewStatus.PENDING
+          ? 'You already have a review awaiting approval'
+          : 'You have already published a review',
+      );
+    }
+
+    const review = await this.prisma.review.create({
+      data: {
+        name: user.name,
+        designation: dto.designation ?? null,
+        rating: dto.rating,
+        body: dto.body,
+        authorId: userId,
+        // Both flags matter: a submission is invisible until an admin approves it *and*
+        // the row is published.
+        status: ReviewStatus.PENDING,
+        published: false,
+      },
+      select: reviewSelect,
+    });
+    return (await this.decorateReviews([review]))[0];
+  }
+
+  /** The caller's own review, whatever state it is in — so the UI can show progress. */
+  async myReview(userId: string) {
+    const review = await this.prisma.review.findFirst({
+      where: { authorId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: reviewSelect,
+    });
+    if (!review) return null;
+    return (await this.decorateReviews([review]))[0];
+  }
+
+  /** Edits are allowed only while a review is still waiting to be looked at. */
+  async updateMyReview(userId: string, dto: SubmitReviewDto) {
+    const existing = await this.prisma.review.findFirst({
+      where: { authorId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, status: true },
+    });
+    if (!existing) throw new NotFoundException('You have not written a review yet');
+    if (existing.status !== ReviewStatus.PENDING) {
+      throw new ConflictException('A review that has already been reviewed can no longer be edited');
+    }
+
+    const review = await this.prisma.review.update({
+      where: { id: existing.id },
+      data: { designation: dto.designation ?? null, rating: dto.rating, body: dto.body },
+      select: reviewSelect,
+    });
+    return (await this.decorateReviews([review]))[0];
+  }
+
+  /** Withdrawing a pending submission. An approved one has to go through an admin. */
+  async withdrawMyReview(userId: string) {
+    const existing = await this.prisma.review.findFirst({
+      where: { authorId: userId, status: ReviewStatus.PENDING },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('You have no pending review to withdraw');
+    await this.prisma.review.delete({ where: { id: existing.id } });
+    return { withdrawn: true };
   }
 
   async deleteReview(id: string) {

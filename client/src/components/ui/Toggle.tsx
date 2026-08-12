@@ -16,7 +16,8 @@ export function Checkbox({ checked, onChange, label, count, className = '' }: Ch
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 shrink-0 cursor-pointer appearance-none rounded border border-subtle bg-surface checked:border-accent checked:bg-accent relative checked:after:absolute checked:after:inset-0 checked:after:flex checked:after:items-center checked:after:justify-center checked:after:text-[10px] checked:after:font-bold checked:after:text-white checked:after:content-['✓']"
+        // `cf-checkbox` owns the checked fill and the tick colour together — see index.css.
+        className="cf-checkbox relative h-4 w-4 shrink-0 cursor-pointer appearance-none rounded border border-subtle bg-surface"
       />
       <span className="flex-1 text-secondary">{label}</span>
       {count !== undefined && <span className="text-xs text-muted tabular-nums">{count}</span>}
@@ -42,12 +43,18 @@ export function Switch({ checked, onChange, label, hideLabel = false }: SwitchPr
       onClick={() => onChange(!checked)}
       className="inline-flex items-center gap-2.5"
     >
-      <span
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-raised'}`}
-      >
+      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'btn-gradient' : 'bg-raised'}`}>
+        {/*
+         * The knob was hard-coded `bg-white`, which is only correct while the track is
+         * dark — against the light-blue track of the dark theme it nearly vanished. It
+         * now takes the button's own ink token when on, and a plain foreground when off.
+         */}
         <span
-          className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform"
-          style={{ transform: checked ? 'translateX(1rem)' : 'translateX(0)' }}
+          className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full transition-transform"
+          style={{
+            transform: checked ? 'translateX(1rem)' : 'translateX(0)',
+            backgroundColor: checked ? 'rgb(var(--c-on-btn))' : 'rgb(var(--c-secondary))',
+          }}
         />
       </span>
       {!hideLabel && <span className="text-sm text-secondary">{label}</span>}

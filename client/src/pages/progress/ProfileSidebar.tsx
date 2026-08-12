@@ -1,14 +1,16 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { getErrorMessage } from '../../utils/errors';
 import Avatar from '../../components/ui/Avatar';
-import Button from '../../components/ui/Button';
+import AvatarPicker from '../../components/AvatarPicker';
+import Button, { ButtonLink } from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import Modal from '../../components/ui/Modal';
 import LevelBadge from '../../components/LevelBadge';
 import { TopicChip } from '../../components/Badge';
 import { useToast } from '../../components/ui/Toast';
-import { IconBarChart, IconCode, IconFlame, IconTrophy, IconUser } from '../../components/icons';
+import { IconBarChart, IconCalendar, IconCode, IconFlame, IconTrophy, IconUser } from '../../components/icons';
 
 export interface ProfileCard {
   id: string;
@@ -16,6 +18,7 @@ export interface ProfileCard {
   email: string;
   username: string | null;
   bio: string | null;
+  avatarUrl: string | null;
   profileViews: number;
   xp: number;
   level: { rank: number; name: string; minXp: number };
@@ -24,6 +27,8 @@ export interface ProfileCard {
   streak: { current: number; longest: number };
   skills: string[];
   languages: string[];
+  /** Present from `/me/profile-card`; guarded at the call site for older cached payloads. */
+  createdAt?: string;
 }
 
 function Block({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
@@ -66,7 +71,7 @@ export default function ProfileSidebar({ card, onUpdated }: { card: ProfileCard;
   return (
     <aside className="rounded-xl border border-subtle bg-surface p-5">
       <div className="flex flex-col items-center text-center">
-        <Avatar name={card.name} size="xl" />
+        <Avatar name={card.name} src={card.avatarUrl} size="xl" />
         <h1 className="mt-3 text-lg font-bold text-primary">{card.name}</h1>
         {card.username && <p className="text-sm text-muted">@{card.username}</p>}
         <div className="mt-2.5">
@@ -75,7 +80,12 @@ export default function ProfileSidebar({ card, onUpdated }: { card: ProfileCard;
         {card.bio && <p className="mt-3 text-sm text-secondary">{card.bio}</p>}
       </div>
 
-      <div className="mt-4 flex items-center justify-between rounded-lg bg-raised px-3 py-2">
+      {/* Rank links to the board it refers to — it was previously a dead figure that
+          looked like it should go somewhere. */}
+      <Link
+        to="/leaderboard"
+        className="mt-4 flex items-center justify-between rounded-lg bg-raised px-3 py-2 transition-colors hover:bg-subtle"
+      >
         <span className="inline-flex items-center gap-1.5 text-sm text-secondary">
           <IconTrophy className="h-4 w-4 text-medium" />
           Rank
@@ -84,15 +94,31 @@ export default function ProfileSidebar({ card, onUpdated }: { card: ProfileCard;
           {card.rank ? `#${card.rank}` : '—'}
           {card.rank && <span className="ml-1 text-xs font-normal text-muted">of {card.totalRanked}</span>}
         </span>
-      </div>
+      </Link>
 
-      <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setEditing(true)}>
-        Edit Profile
-      </Button>
+      <div className="mt-3 flex flex-col gap-2">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setEditing(true)}>
+          Edit Profile
+        </Button>
+        {card.username && (
+          // `secondary`, not `ghost` — a ghost button on the card it sits on has no fill
+          // and no border, so it reads as a stray line of text rather than a control.
+          <ButtonLink to={`/u/${card.username}`} variant="secondary" size="sm" className="w-full">
+            View public profile
+          </ButtonLink>
+        )}
+      </div>
 
       <div className="mt-5 flex flex-col gap-4 border-t border-subtle pt-4">
         <Block icon={<IconUser className="h-4 w-4" />} label="Profile Views">
-          <span className="tabular-nums">{card.profileViews}</span>
+          {/* The tooltip states the counting rule, because a number with no stated
+              basis invites the assumption that it counts every visit. */}
+          <span
+            className="tabular-nums"
+            title="Signed-in visitors who opened your public profile, counted once per person per day. Your own visits and signed-out visitors are not counted."
+          >
+            {card.profileViews}
+          </span>
         </Block>
 
         <Block icon={<IconFlame className="h-4 w-4" />} label="Streak">
@@ -102,15 +128,39 @@ export default function ProfileSidebar({ card, onUpdated }: { card: ProfileCard;
           <span className="text-muted"> · longest {card.streak.longest}</span>
         </Block>
 
+        {card.createdAt && (
+          <Block icon={<IconCalendar className="h-4 w-4" />} label="Member since">
+            {new Date(card.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+          </Block>
+        )}
+
+        {/* Languages and skills now go somewhere. They read as filters, and they were
+            the "links that aren't touchable" — so they are links. */}
         <Block icon={<IconCode className="h-4 w-4" />} label="Languages">
-          {card.languages.length ? card.languages.map((l) => l.toUpperCase()).join(', ') : '—'}
+          {card.languages.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {card.languages.map((l) => (
+                <Link
+                  key={l}
+                  to={`/submissions?language=${encodeURIComponent(l)}`}
+                  className="rounded-full bg-raised px-2.5 py-0.5 text-xs font-medium text-secondary transition-colors hover:text-primary"
+                >
+                  {l.toUpperCase()}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
         </Block>
 
         <Block icon={<IconBarChart className="h-4 w-4" />} label="Skills">
           {card.skills.length ? (
             <div className="flex flex-wrap gap-1.5">
               {card.skills.map((s) => (
-                <TopicChip key={s} name={s} />
+                <Link key={s} to={`/problems?tags=${encodeURIComponent(s)}`} title={`Practise ${s.replace(/-/g, ' ')}`}>
+                  <TopicChip name={s} />
+                </Link>
               ))}
             </div>
           ) : (
@@ -126,6 +176,13 @@ export default function ProfileSidebar({ card, onUpdated }: { card: ProfileCard;
         description="Your skills and languages are derived from what you solve, so they can't be edited here."
       >
         <form onSubmit={save} className="flex flex-col gap-4" id="edit-profile-form">
+          {/* Saves immediately on its own, rather than waiting for the form's Save —
+              an upload is not a draft, and pretending otherwise means a cancelled form
+              would have to somehow un-upload the file. */}
+          <div className="border-b border-subtle pb-4">
+            <AvatarPicker name={card.name} avatarUrl={card.avatarUrl} size="lg" onChange={() => onUpdated()} />
+          </div>
+
           <TextField label="Display name" value={name} onChange={(e) => setName(e.target.value)} required />
           <TextField
             label="Username"

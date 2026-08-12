@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -36,6 +37,15 @@ import { AdminModule } from './modules/admin/admin.module';
     ResourcesModule,
     UploadsModule,
     AdminModule,
+  ],
+  providers: [
+    /*
+     * Registering ThrottlerModule alone does nothing — the guard has to be bound for any
+     * limit to be applied. Without this every `@Throttle()` in the codebase was inert,
+     * including the ones on login and registration, which is a credential-stuffing door
+     * on a public deployment. Found while auditing for go-live.
+     */
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

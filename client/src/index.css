@@ -10,89 +10,254 @@
  */
 @layer base {
   :root {
-    --c-base: 13 14 18;
-    --c-surface: 22 23 29;
-    --c-raised: 30 32 40;
-    --c-subtle: 38 40 50;
+    /*
+     * Supplied palette:
+     *   gradient pair  #003af7 (blue) → #e000f0 (magenta)
+     *   dark ramp      #040214  #1a0f3c  #3c215d  #7d498c  #d799c5
+     *
+     * The brief: near-black for most of the page, the gradient present only as
+     * *ambience* and on interactive elements — professional, not a colourful canvas.
+     * So the two bright colours are confined to the body gradient, the accent and the
+     * activity ramp; every large surface is one of the near-blacks.
+     *
+     * Body text stays near-neutral rather than tinted purple. Purple body copy is the
+     * fastest way to make a page look like a theme demo instead of a product.
+     */
+    --c-base: 4 2 20;
+    --c-surface: 17 11 45;
+    --c-raised: 26 15 60;
+    --c-subtle: 60 33 93;
 
-    --c-primary: 232 233 237;
-    --c-secondary: 161 164 178;
-    --c-muted: 107 111 128;
-
-    --c-accent: 99 102 241;
-    --c-accent-soft: 129 140 248;
+    --c-primary: 240 238 250;
+    --c-secondary: 184 178 206;
+    --c-muted: 142 136 168;
 
     /*
-     * Difficulty triad, tuned for the dark surface and checked with the dataviz
-     * validator rather than picked by eye: contrast >= 3:1, normal-vision
-     * separation dE 16.2, worst CVD pair dE 7.6 (deutan). That last figure sits in
-     * the 6-8 band, which is only acceptable because difficulty is *never* encoded
-     * by colour alone here - every badge and meter row carries its text label.
+     * `#003af7` itself measures 2.88:1 on this background — unusable as text or as an
+     * icon. It is *kept*, as the button fill and as one end of the gradient, where white
+     * on it is 7.1:1. `--c-accent` is a lightened tint of the same hue so that links,
+     * icons and focus rings are legible; `on-accent` is near-black because that tint is
+     * light. The literal `#003af7` lives on in `--c-grad-a`.
      */
-    --c-easy: 18 168 119;
-    --c-medium: 207 138 9;
-    --c-hard: 229 72 77;
+    --c-accent: 110 140 255;
+    --c-accent-soft: 146 170 255;
+    --c-on-accent: 4 2 20;
 
-    --c-error: 249 115 22;
-    --c-info: 96 165 250;
+    /* The two supplied colours, used only for the page ambience gradient. */
+    --c-grad-a: 0 58 247;
+    --c-grad-b: 224 0 240;
 
-    /* Sequential ramp for activity intensity: one hue, monotonically lighter as
-     * values rise (correct direction on a dark surface). Deliberately indigo, not
-     * green, so it cannot be misread as the "easy" difficulty colour. */
-    --c-heat-0: 27 29 39;
-    --c-heat-1: 49 46 129;
-    --c-heat-2: 67 56 202;
-    --c-heat-3: 99 102 241;
-    --c-heat-4: 165 180 252;
+    /*
+     * Gradient stops for text — the wordmark, and nothing else. Lifted off `grad-a`/
+     * `grad-b` because `#003af7` as *ink* on near-black is 2.9:1: a gradient does not
+     * excuse a stop being illegible. Both stops are contrast-checked individually.
+     */
+    --c-brand-a: 122 152 255;
+    --c-brand-b: 232 128 244;
+
+    /*
+     * Primary button fill. On a near-black page the button should be the *light* thing
+     * in the room — a dark button on a dark page is the flat, lifeless result this
+     * replaces. Both stops are light, so the label is near-black and clears 4.5:1 across
+     * the whole sweep, not just at the ends.
+     */
+    --c-btn-from: 122 152 255;
+    --c-btn-to: 229 139 240;
+    --c-on-btn: 4 2 20;
+
+    /*
+     * Second accent. One accent on a page of neutrals is what made this look
+     * monochromatic; this gives badges, chips and stat figures somewhere else to go.
+     * The magenta end of the supplied gradient, lifted until it is legible as text.
+     */
+    --c-accent-2: 221 147 242;
+
+    /*
+     * Decorative tones for things that are merely *different* from one another — topic
+     * tiles, initials avatars — where sixteen identical cards is the actual problem.
+     *
+     * Deliberately a sweep along the brand gradient plus two cool neighbours, not a
+     * rainbow: the page should look varied, not carnival. They carry no meaning, so a
+     * user never has to decode them, and they are assigned by hashing a stable string so
+     * a topic keeps its colour between renders and across pages.
+     */
+    --c-tone-1: 122 152 255;
+    --c-tone-2: 167 139 250;
+    --c-tone-3: 221 147 242;
+    --c-tone-4: 244 143 200;
+    --c-tone-5: 103 192 245;
+    --c-tone-6: 94 214 202;
+
+    /*
+     * Difficulty triad, verified with `tools/check-contrast.mjs` rather than picked by
+     * eye. A blue accent is a real advantage here: green/amber/red sit nowhere near it
+     * on the wheel, so unlike the amber accent these no longer have to be pushed around
+     * to stay distinguishable from the brand colour.
+     */
+    --c-easy: 52 208 145;
+    --c-medium: 240 200 90;
+    --c-hard: 244 108 122;
+
+    --c-error: 244 130 96;
+    --c-info: 215 153 197;
+
+    /*
+     * Difficulty colours for *graphics* — progress bars and donut segments — as opposed
+     * to text. Identical in both themes on purpose: the luminous set reads better, and a
+     * chart is not text, so it is not bound by the 4.5:1 rule that forced the light
+     * theme's difficulty *labels* to be dark.
+     *
+     * Labels and badges still use `--c-easy`/`--c-medium`/`--c-hard`, which do change
+     * per theme. Only fills use these.
+     */
+    --c-bar-easy: 47 209 106;
+    --c-bar-medium: 255 178 36;
+    --c-bar-hard: 255 90 101;
+
+    /*
+     * Activity ramp — green, in the contribution-graph idiom, and identical in spirit
+     * across both themes. It is the one chart people already know how to read, so
+     * borrowing the convention costs nothing and saves the viewer a legend lookup.
+     *
+     * `heat-0` is the *empty day*: a neutral, deliberately not green, so "no activity"
+     * never reads as "a little activity". It has to stay clearly visible against the card
+     * or the grid disappears — an earlier value sat within a point of `surface` and a
+     * month with one submission rendered as a single square floating in nothing.
+     */
+    --c-heat-0: 46 42 63;
+    --c-heat-1: 14 68 41;
+    --c-heat-2: 0 109 50;
+    --c-heat-3: 38 166 65;
+    --c-heat-4: 57 211 83;
   }
 
   /*
    * Light theme. Only the token values change — no component knows a theme exists.
    *
    * These are not the dark values lightened: on white, the dark-tuned green/amber/red
-   * fall well below 4.5:1 as text. Every value here was run through the same
-   * contrast + colour-vision check as the dark set, and the results are:
-   *   body text     17.5:1   ·  secondary 7.8:1  ·  muted 5.2:1 (4.9:1 on raised)
-   *   accent         6.3:1   ·  easy 5.5:1  ·  medium 4.9:1  ·  hard 6.3:1
-   *   difficulty separation: dE 46-102 normal, worst CVD pair dE 24.6
-   * `muted` is deliberately darker than it looks like it needs to be — at the
-   * obvious value it measured 4.45:1 against `raised`, just under the threshold.
+   * fall well below 4.5:1 as text. Every value goes through the same
+   * `tools/check-contrast.mjs` run as the dark set — run it, do not eyeball it.
    */
   :root[data-theme='light'] {
-    --c-base: 247 248 250;
+    /* Overwhelmingly white, per the brief. `base` carries only the faintest tint so a
+     * white card still reads as a card sitting on a page. */
+    --c-base: 248 246 253;
     --c-surface: 255 255 255;
-    --c-raised: 239 241 245;
-    --c-subtle: 220 224 232;
+    --c-raised: 245 243 252;
+    --c-subtle: 223 219 240;
 
-    --c-primary: 17 19 24;
-    --c-secondary: 71 78 94;
-    --c-muted: 98 105 122;
+    --c-primary: 16 14 30;
+    --c-secondary: 62 58 84;
+    --c-muted: 99 94 122;
 
-    --c-accent: 79 70 229;
-    --c-accent-soft: 99 102 241;
+    /*
+     * Brightened off the palette's `#003af7`, which read as navy and heavy on a white
+     * page. `#2563EB` is 5.17:1 as text and the same with white on it, so a filled button
+     * stays comfortably legible while looking considerably less inky.
+     *
+     * `accent-soft` is *darker* because it is the hover state, and on white more emphatic
+     * means down, not up.
+     *
+     * `#e000f0` is deliberately NOT a text or fill colour here: it measures 3.87:1 on
+     * white, below the threshold. It appears only in the ambience gradient.
+     */
+    --c-accent: 37 99 235;
+    --c-accent-soft: 29 78 216;
+    --c-on-accent: 255 255 255;
 
+    --c-grad-a: 37 99 235;
+    --c-grad-b: 224 0 240;
+
+    /* On white the stops go the other way — darkened until both clear 4.5:1 as ink. */
+    --c-brand-a: 37 99 235;
+    --c-brand-b: 168 0 178;
+
+    /*
+     * Light theme inverts the rule: the button is the *dark* thing on a white page, so
+     * the label is white. The magenta end is deepened from `#e000f0` — at the supplied
+     * value white on it is 3.87:1, and a gradient button whose far end fails is still a
+     * failing button.
+     */
+    --c-btn-from: 37 99 235;
+    --c-btn-to: 163 0 158;
+    --c-on-btn: 255 255 255;
+
+    --c-accent-2: 156 10 166;
+
+    /* Same sweep, darkened for a white ground so each still reads as text. */
+    --c-tone-1: 37 71 196;
+    --c-tone-2: 106 61 186;
+    --c-tone-3: 156 10 166;
+    --c-tone-4: 178 27 118;
+    --c-tone-5: 21 108 158;
+    --c-tone-6: 12 122 116;
+
+    /*
+     * Difficulty *labels*. These are text on white, so 4.5:1 is a hard ceiling on how
+     * bright they can get — a vivid green measures under 4:1 and cannot be used here.
+     * `medium` and `hard` had headroom and have been brightened to the limit; `easy` had
+     * none. The luminous versions live in `--c-bar-*` and are used for charts, which are
+     * not text and so are not bound by that rule.
+     */
     --c-easy: 4 120 87;
-    --c-medium: 161 98 7;
-    --c-hard: 190 24 40;
+    --c-medium: 180 83 9;
+    --c-hard: 220 38 38;
 
-    --c-error: 194 65 12;
-    --c-info: 29 78 216;
+    --c-error: 180 60 24;
+    --c-info: 150 0 158;
 
-    /* Sequential ramp inverted for a light ground: darker means more activity. */
-    --c-heat-0: 233 236 242;
-    --c-heat-1: 199 210 254;
-    --c-heat-2: 129 140 248;
-    --c-heat-3: 79 70 229;
-    --c-heat-4: 49 46 129;
+    /* Identical to the dark theme — see the note there. */
+    --c-bar-easy: 47 209 106;
+    --c-bar-medium: 255 178 36;
+    --c-bar-hard: 255 90 101;
+
+    /*
+     * Same green idiom, inverted for a light ground: darker means more activity, and the
+     * empty cell is a neutral grey rather than a pale green.
+     *
+     * The two deepest steps are darker than the contribution-graph originals because this
+     * calendar prints the day number inside the cell — at the usual `#30a14e` the
+     * near-white ink measures 3.09:1, so the number would be hard to read on exactly the
+     * days with the most activity.
+     */
+    --c-heat-0: 224 228 234;
+    --c-heat-1: 155 233 168;
+    --c-heat-2: 64 196 99;
+    --c-heat-3: 35 128 63;
+    --c-heat-4: 23 92 45;
   }
 
+  /*
+   * Page ambience.
+   *
+   * Two very wide, very low-opacity radial washes of the supplied gradient pair, pinned
+   * to the viewport so they read as lighting on the page rather than as a banner that
+   * scrolls away. The opacities are low on purpose: the brief was "professional, not a
+   * colourful canvas", and every card sits on an opaque `surface` above this, so the
+   * wash never ends up behind body copy. Worst-case composited background was checked
+   * against the text tokens — see tools/check-contrast.mjs.
+   */
   body {
-    @apply bg-canvas text-primary font-sans antialiased;
+    @apply text-primary font-sans antialiased;
+    background-color: rgb(var(--c-base));
+    background-image:
+      radial-gradient(80rem 45rem at 12% -10%, rgb(var(--c-grad-a) / 0.16), transparent 60%),
+      radial-gradient(70rem 40rem at 88% 4%, rgb(var(--c-grad-b) / 0.10), transparent 55%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  :root[data-theme='light'] body {
+    /* Far weaker on white: the same alphas that read as a glow on near-black read as a
+     * tinted sheet of paper on white, which is exactly the "colourful canvas" to avoid. */
+    background-image:
+      radial-gradient(80rem 45rem at 12% -10%, rgb(var(--c-grad-a) / 0.05), transparent 60%),
+      radial-gradient(70rem 40rem at 88% 4%, rgb(var(--c-grad-b) / 0.05), transparent 55%);
   }
 
   ::selection {
     background-color: rgb(var(--c-accent) / 0.4);
-    color: white;
+    color: rgb(var(--c-primary));
   }
 
   *:focus-visible {
@@ -115,6 +280,115 @@
 }
 
 @layer utilities {
+  /*
+   * The wordmark, and only the wordmark. Reserving the gradient for one element is what
+   * keeps it an identity rather than decoration — the moment it appears on headings and
+   * buttons too, the page becomes the "colourful canvas" this palette was chosen against.
+   */
+  .text-brand-gradient {
+    background-image: linear-gradient(100deg, rgb(var(--c-brand-a)), rgb(var(--c-brand-b)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Forced-colours mode discards the background image, which would leave the wordmark
+   * transparent — i.e. invisible. Hand it back a real colour. */
+  @media (forced-colors: active) {
+    .text-brand-gradient {
+      background-image: none;
+      color: canvastext;
+    }
+  }
+
+  /*
+   * Primary button fill. A real gradient rather than a flat accent — the flat version
+   * read as monochrome against a page of neutrals.
+   *
+   * Hover brightens rather than swapping to a second gradient: one declaration, and it
+   * cannot drift out of step with the base state. `background-image` is used (not
+   * `background`) so the `background-color` underneath survives as the forced-colours
+   * and print fallback.
+   */
+  .btn-gradient {
+    background-color: rgb(var(--c-btn-from));
+    background-image: linear-gradient(105deg, rgb(var(--c-btn-from)), rgb(var(--c-btn-to)));
+    color: rgb(var(--c-on-btn));
+    transition: filter 150ms ease, box-shadow 150ms ease;
+  }
+  .btn-gradient:hover:not(:disabled) {
+    filter: brightness(1.1) saturate(1.05);
+  }
+  .btn-gradient:active:not(:disabled) {
+    filter: brightness(0.95);
+  }
+
+  @media (forced-colors: active) {
+    .btn-gradient {
+      background-image: none;
+    }
+  }
+
+  /*
+   * Card with a coloured glow bleeding in from one corner.
+   *
+   * The glow is a `::before` layer rather than a background-image on the card itself, so
+   * the card keeps its opaque `surface` fill underneath — that fill is what every
+   * contrast figure for text on a card is measured against, and a semi-transparent card
+   * would quietly invalidate all of them. The layer is capped low enough that the
+   * composited result still clears the text thresholds; `check-contrast.mjs` verifies
+   * that rather than trusting it.
+   *
+   * Set `--glow` per card (an `r g b` triplet). Defaults to the accent.
+   */
+  .card-glow {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .card-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(75% 100% at 8% 0%, rgb(var(--glow, var(--c-accent)) / 0.12), transparent 72%),
+      radial-gradient(60% 90% at 100% 8%, rgb(var(--glow, var(--c-accent)) / 0.06), transparent 68%);
+  }
+
+  /* On white the same alphas read as a stained card rather than a lit one. */
+  :root[data-theme='light'] .card-glow::before {
+    background:
+      radial-gradient(75% 100% at 8% 0%, rgb(var(--glow, var(--c-accent)) / 0.10), transparent 72%),
+      radial-gradient(60% 90% at 100% 8%, rgb(var(--glow, var(--c-accent)) / 0.05), transparent 68%);
+  }
+
+  /*
+   * Checked form controls, driven by the same token pair as buttons so a selected
+   * checkbox can never disagree with a selected chip about what "selected" looks like.
+   *
+   * Written as a real selector rather than Tailwind `checked:` variants because the tick
+   * colour has to come from `--c-on-btn`, and keeping the fill and the ink in one rule is
+   * what stops them drifting apart.
+   */
+  .cf-checkbox:checked {
+    background-color: rgb(var(--c-btn-from));
+    background-image: linear-gradient(105deg, rgb(var(--c-btn-from)), rgb(var(--c-btn-to)));
+    border-color: transparent;
+  }
+  .cf-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgb(var(--c-on-btn));
+  }
+
   /* Used by the homepage marquee and any infinite-scroll strip. */
   @keyframes marquee {
     from {

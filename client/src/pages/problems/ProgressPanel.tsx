@@ -15,10 +15,11 @@ interface Props {
   onSelectDate: (date: string | null) => void;
 }
 
+// Fills use the theme-independent set; the labels below stay theme-aware.
 const barColor: Record<string, string> = {
-  EASY: 'bg-easy',
-  MEDIUM: 'bg-medium',
-  HARD: 'bg-hard',
+  EASY: 'bg-barEasy',
+  MEDIUM: 'bg-barMedium',
+  HARD: 'bg-barHard',
 };
 
 const labelColor: Record<string, string> = {

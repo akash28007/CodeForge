@@ -165,12 +165,16 @@ export function TopicChip({
   active?: boolean;
   onClick?: () => void;
 }) {
+  // `btn-gradient` brings its own label colour, so the selected chip can never end up
+  // dark-on-dark the way a flat `bg-accent` could.
   const cls = `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
-    active ? 'bg-accent text-white' : 'bg-raised text-secondary'
+    active ? 'btn-gradient' : 'bg-raised text-secondary'
   }`;
   if (!onClick) return <span className={cls}>{name}</span>;
   return (
-    <button type="button" onClick={onClick} className={`${cls} hover:text-primary`}>
+    // The hover tint is for the *unselected* state only. Applying it to both is what
+    // turned a selected chip's label near-black on its own dark fill.
+    <button type="button" onClick={onClick} className={`${cls} ${active ? '' : 'hover:text-primary'}`}>
       {name}
     </button>
   );

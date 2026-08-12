@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getErrorMessage } from '../utils/errors';
 import Button from '../components/ui/Button';
+import AvatarPicker from '../components/AvatarPicker';
 import TextField from '../components/ui/TextField';
 import Dropdown from '../components/ui/Dropdown';
 import { Checkbox } from '../components/ui/Toggle';
@@ -27,6 +28,7 @@ interface ProfileCard {
   email: string;
   username: string | null;
   bio: string | null;
+  avatarUrl: string | null;
 }
 
 type Tab = 'profile' | 'account' | 'preferences' | 'notifications' | 'danger';
@@ -106,6 +108,7 @@ export default function Settings() {
     }
   }
 
+
   async function savePassword(event: FormEvent) {
     event.preventDefault();
     setPasswordError(null);
@@ -182,6 +185,17 @@ export default function Settings() {
 
       {tab === 'profile' && (
         <Section title="Public profile" description="How you appear on the leaderboard and to other users.">
+          <div className="mb-5 border-b border-subtle pb-5">
+            <AvatarPicker
+              name={card.name}
+              avatarUrl={card.avatarUrl}
+              onChange={(avatarUrl) => {
+                setCard((c) => (c ? { ...c, avatarUrl } : c));
+                void refreshUser();
+              }}
+            />
+          </div>
+
           <form onSubmit={saveProfile} className="flex flex-col gap-4">
             <TextField label="Display name" value={name} onChange={(e) => setName(e.target.value)} required />
             <TextField
