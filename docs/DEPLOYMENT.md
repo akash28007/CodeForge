@@ -79,7 +79,14 @@ Use this if Oracle will not let you in. It works, with two adjustments.
 > there. Oracle's tier does not expire; AWS's does.
 
 1. **Launch instance** — EC2 → Launch instance.
-   - **AMI:** Ubuntu Server 22.04 LTS
+   - **AMI:** **Ubuntu Server 24.04 LTS**. Plain 22.04 is no longer in the Quick Start
+     list (as of Aug 2026 the only 22.04 entry is bundled with SQL Server 2022 Standard
+     — a licensed, non-free-tier image; do not pick it).
+     Prefer the newest LTS that is at least a year old over the very newest. Node
+     (NodeSource), Docker (`get.docker.com`) and Caddy (Cloudsmith) all serve apt repos
+     keyed to the release *codename*, and a brand-new release frequently has no
+     published repo yet — which surfaces as a 404 from the setup script, or an install
+     that quietly does nothing.
    - **Type:** `t3.micro` (x86) or `t4g.small` (ARM) if either is free-tier eligible for
      your account. `t4g.small` has 2 GB and is the better box if you have it.
    - **Key pair:** create one, choose **`.pem`** format, and download it. Then lock its
