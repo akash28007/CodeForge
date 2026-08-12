@@ -4,24 +4,51 @@ This file is the handoff from planning done in claude.ai chat. Read this fully b
 
 ---
 
-## CURRENT STATE — read this first (last updated: 11 Aug 2026)
+## CURRENT STATE — read this first (last updated: 12 Aug 2026)
 
 **Everything is built and verified.** Milestones 1–10 and all 14 steps of the UI/UX
 rebuild are complete.
 
 ### Deployment
 
-The runbook is [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — a real file now; it had only
-ever existed in a chat transcript. Code and config are deploy-ready and verified; what
-remains is account signups only the owner can perform.
+**LIVE as of 12 Aug 2026.** Runbook: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-**Progress**: Neon and Upstash are done. Oracle Cloud would not let the user log in, so
-the VM section now documents **AWS EC2 as Option A** alongside Oracle as Option B. The
-AWS path needs two non-obvious adjustments that are easy to miss and hard to diagnose:
-a **1 GB `t3.micro` cannot run `EXEC_QUEUE_CONCURRENCY=4`** (one compile container alone
-requests 512 MB), so it drops to 1 plus 2 GB of swap; and an **Elastic IP is mandatory**
-because the HTTPS hostname is derived from the public IP, which EC2 changes on stop/start.
-Also note AWS's free window expires, unlike Oracle's.
+| | |
+|---|---|
+| Site | https://code-forge-navy.vercel.app |
+| API | https://3-130-208-15.sslip.io (Caddy, Let's Encrypt) |
+| VM | AWS EC2 `t3.micro`, us-east-2c, `i-0ac3adb1ba42b0efa`, Elastic IP `3.130.208.15` |
+| DB / Redis | Neon + Upstash, both us-east-2 |
+| Admin | `akashy07v@gmail.com` |
+
+Verified end to end against the live stack: register → submit → **ACCEPTED 4/4, 401 ms**
+through the real Docker sandbox. CORS, the SPA deep-link rewrite and asset caching all
+confirmed from outside the VM.
+
+Oracle Cloud would not let the user log in, so the VM section documents **AWS EC2 as
+Option A** alongside Oracle as Option B. The AWS path needs two adjustments that are easy
+to miss and hard to diagnose: a **1 GB `t3.micro` cannot run `EXEC_QUEUE_CONCURRENCY=4`**
+(one compile container alone requests 512 MB), so it drops to 1 plus 2 GB of swap; and an
+**Elastic IP is mandatory** because the HTTPS hostname is derived from the public IP,
+which EC2 changes on stop/start. AWS's free window also expires, unlike Oracle's.
+
+Things that actually cost time during go-live, none of which are in the original runbook:
+
+- **GitHub had only the scaffold commit.** The whole app was uncommitted locally. Both
+  deploy targets pull from GitHub, so this had to be fixed first. Check `git status`
+  before deploying anything.
+- **`vercel.json` used `"//"` keys as comments.** Vercel validates against a strict
+  schema and rejects unknown properties, failing the build before install. JSON has no
+  comments — rationale lives in `docs/DEPLOYMENT.md` instead.
+- **`db:seed` requires an existing ADMIN**, so it cannot run before signup. Order is:
+  service up → register → promote → seed.
+- **EC2's "My IP" captured the wrong address.** The user's SSH egress
+  (`152.59.187.119`) differs from their web egress (`152.59.185.204`) and moves within
+  `152.59.0.0/16`. Symptom is a total timeout on *every* port, which looks like broken
+  routing; EC2 Instance Connect is the fastest way to prove the box is healthy.
+- **`prisma studio` is useless over SSH** — it opens a browser UI on a headless host.
+- Writing files to the VM from PowerShell adds a **UTF-8 BOM**, which breaks a shebang
+  and silently renames the first `.env` key. Pipe from the Bash tool, or strip it.
 
 Three blockers were found and fixed during the go-live audit, all of which only surface in
 a production build:
