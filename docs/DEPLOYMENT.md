@@ -82,7 +82,19 @@ Use this if Oracle will not let you in. It works, with two adjustments.
    - **AMI:** Ubuntu Server 22.04 LTS
    - **Type:** `t3.micro` (x86) or `t4g.small` (ARM) if either is free-tier eligible for
      your account. `t4g.small` has 2 GB and is the better box if you have it.
-   - **Key pair:** create one, download the `.pem`, then `chmod 400 <key>.pem`
+   - **Key pair:** create one, choose **`.pem`** format, and download it. Then lock its
+     permissions down — `ssh` refuses a key others can read.
+
+     Linux/macOS: `chmod 400 <key>.pem`
+
+     **Windows** has no `chmod`, and the inherited permissions on a file in `Downloads`
+     are exactly what `ssh` rejects (`UNPROTECTED PRIVATE KEY FILE`). Use `icacls` in
+     PowerShell — disable inheritance, then grant only yourself:
+
+     ```powershell
+     icacls .\codeforge-key.pem /inheritance:r
+     icacls .\codeforge-key.pem /grant:r "$($env:USERNAME):(R)"
+     ```
    - **Storage:** change the root volume from the 8 GB default to **30 GB** — the free
      tier includes 30 GB, and the executor image alone is ~2 GB. An 8 GB disk gets
      uncomfortable once Ubuntu, Node, `node_modules` and Docker layers are on it.
@@ -98,6 +110,10 @@ Use this if Oracle will not let you in. It works, with two adjustments.
    to a running instance.
 
 4. **Connect:** `ssh -i <key>.pem ubuntu@<elastic-ip>`
+
+   Windows 10/11 ship OpenSSH at `C:\Windows\System32\OpenSSH\ssh.exe`, so this works
+   from PowerShell as-is — no PuTTY, no key conversion. Everything from step 4 onward
+   runs *on the VM*, which is Ubuntu, so the Unix commands below are correct there.
 
 5. **Two required adjustments for a 1 GB box.** Skip these and the judge will be
    OOM-killed under load, which surfaces as submissions failing for no visible reason.
@@ -161,7 +177,7 @@ sudo usermod -aG docker $USER && newgrp docker
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs git build-essential python3
 
-git clone <your-repo-url> codeforge && cd codeforge/server
+git clone https://github.com/akash28007/CodeForge.git codeforge && cd codeforge/server
 npm ci
 
 # The sandbox image. The judge will not run without it.
@@ -343,6 +359,8 @@ Work through this in a browser, not just with curl:
 | **AWS:** submissions fail sporadically under load | Judge OOM-killed. Confirm swap is on (`free -h`) and `EXEC_QUEUE_CONCURRENCY=1` on a 1 GB box |
 | **AWS:** `npm ci` or `docker build` dies with ENOSPC | Root volume left at the 8 GB default. `df -h`; the executor image alone is ~2 GB |
 | `npm ci` fails compiling bcrypt | Missing `build-essential` / `python3` |
+| **Windows:** `UNPROTECTED PRIVATE KEY FILE`, `ssh` refuses the key | `chmod` does not exist on Windows — use the `icacls` pair in Option A step 1 |
+| The VM builds and runs, but the site is the old scaffold | The clone pulled a branch without the work. Confirm `git log -1` on the VM matches `origin/main` |
 
 ## Updating
 
