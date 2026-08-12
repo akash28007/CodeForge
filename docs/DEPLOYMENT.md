@@ -238,8 +238,12 @@ mkdir -p /home/ubuntu/codeforge-uploads
 npx prisma generate            # the client is not committed; generate before migrating
 npx prisma migrate deploy      # NOT `migrate dev` — never on a real database
 npm run build
-npm run db:seed                # 111 problems, badges, homepage content, resources
 ```
+
+**Do not run the seed yet.** Seeded problems need an owner, so `db:seed` aborts with
+*"No ADMIN user found"* against an empty database. The order has to be: start the
+service, register an account, promote it, *then* seed. Sections 4–5 below assume this,
+and section 7 is the promotion step.
 
 The seed is idempotent and never overwrites rows an admin has edited, so it is safe to
 re-run after a content update.
@@ -324,13 +328,31 @@ or CORS will reject the browser.
 
 ## 7. Promote yourself to admin
 
-There is deliberately no self-service admin promotion.
+There is deliberately no self-service admin promotion. **This has to happen before the
+seed**, which needs an ADMIN to own the problems it creates.
+
+Register through the running API rather than inserting a row by hand, so the password is
+hashed by the same code path as a real signup. The prompts keep the password out of your
+shell history:
 
 ```bash
-cd ~/codeforge/server && npx prisma studio
+read -rp "Name: " N; read -rp "Email: " E; read -rsp "Password (8+): " W; echo
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:4000/auth/register \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"$N\",\"email\":\"$E\",\"password\":\"$W\"}"; unset W
 ```
 
-Open `User`, set `role` to `ADMIN`.
+Then promote it. `npx prisma studio` opens a browser UI, which is useless over SSH on a
+headless box — do it from the CLI instead:
+
+```bash
+cd ~/codeforge/server
+node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();
+p.user.update({where:{email:'you@example.com'},data:{role:'ADMIN'}},
+).then(u=>console.log('now',u.role))"
+```
+
+Now run `npm run db:seed`.
 
 ---
 
