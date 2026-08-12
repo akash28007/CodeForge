@@ -320,8 +320,18 @@ Caddy requests and renews the certificate on first request. Nothing else to conf
 `VITE_API_URL` is read **at build time**, not at runtime. Changing it means redeploying,
 not restarting.
 
-`client/vercel.json` is already committed and handles SPA routing — without it, opening
-`/problems/<id>` directly returns 404 because the host looks for a real file at that path.
+`client/vercel.json` is already committed and does two things:
+
+- **Rewrites** everything except `assets/` and the three brand images to `/index.html`,
+  because React Router owns every path. Without it, opening `/problems/<id>` directly —
+  or just refreshing that page — returns 404, since the host looks for a real file there.
+- **Caches** hashed build output for a year (immutable by construction) and the
+  stable-named brand images for a day with revalidation.
+
+**Do not put `"//"` comment keys in that file.** JSON has no comments, and Vercel
+validates `vercel.json` against a strict schema that rejects unknown properties — the
+build fails before it installs anything, with
+`headers[0] should NOT have additional property "//"`. Rationale goes here instead.
 
 Then set `CLIENT_URL` on the VM to the Vercel URL and `sudo systemctl restart codeforge`,
 or CORS will reject the browser.
