@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errors';
 import { useSplitPane } from '../hooks/useSplitPane';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { clearDraft, loadDraft, saveDraft } from '../utils/draftStorage';
 import { DifficultyBadge, TopicChip } from '../components/Badge';
 import Button from '../components/ui/Button';
@@ -83,6 +84,14 @@ export default function ProblemDetail() {
   const navigate = useNavigate();
   const { push } = useToast();
   const { containerRef, ratio, dragging, startDrag, onKeyDown } = useSplitPane();
+
+  /**
+   * Below `lg` the two panes stack, and the statement is several screens tall on a
+   * phone — which buried the editor far below the fold. Under that breakpoint we show
+   * one pane at a time instead, so the editor is always one tap away.
+   */
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [mobilePane, setMobilePane] = useState<'problem' | 'code'>('problem');
 
   const [problem, setProblem] = useState<ProblemDetailData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -265,17 +274,47 @@ export default function ProblemDetail() {
   ];
 
   return (
-    <div
-      ref={containerRef}
-      className="flex flex-col gap-4 lg:h-[calc(100vh-7rem)] lg:flex-row lg:gap-0"
-    >
+    <>
+      {/* Mobile-only pane switcher. Hidden from `lg` up, where both panes are visible
+          side by side and the draggable divider takes over. */}
+      <div
+        role="tablist"
+        aria-label="Switch between the problem and the editor"
+        className="mb-3 flex gap-1 rounded-lg border border-subtle bg-surface p-1 lg:hidden"
+      >
+        {(['problem', 'code'] as const).map((pane) => (
+          <button
+            key={pane}
+            role="tab"
+            aria-selected={mobilePane === pane}
+            onClick={() => setMobilePane(pane)}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              mobilePane === pane
+                ? 'bg-raised text-primary'
+                : 'text-secondary hover:text-primary'
+            }`}
+          >
+            {pane === 'problem' ? 'Problem' : 'Code'}
+          </button>
+        ))}
+      </div>
+
+      <div
+        ref={containerRef}
+        className="flex flex-col gap-4 lg:h-[calc(100vh-7rem)] lg:flex-row lg:gap-0"
+      >
       {/* ── left pane ── */}
       {/* `min-w-0` is load-bearing: a flex item defaults to `min-width: auto`, so
           without it the pane refuses to shrink below its content's intrinsic width and
           the divider silently stops responding in that direction. */}
       <section
-        className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:shrink-0"
-        style={{ flexBasis: `${ratio}%` }}
+        className={`${
+          mobilePane === 'problem' ? 'flex' : 'hidden'
+        } min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:flex lg:shrink-0`}
+        // Gated to desktop deliberately: below `lg` the container is `flex-col`, so a
+        // percentage flex-basis would size this pane's HEIGHT rather than its width.
+        // An inline style also outranks any Tailwind class, so this cannot be done in CSS.
+        style={isDesktop ? { flexBasis: `${ratio}%` } : undefined}
       >
         <div className="flex items-center gap-1 border-b border-subtle px-2">
           {tabs.map((t) => (
@@ -414,8 +453,16 @@ export default function ProblemDetail() {
       </div>
 
       {/* ── right pane ── */}
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        <div className="flex min-h-[20rem] flex-1 flex-col overflow-hidden rounded-xl border border-subtle bg-surface">
+      <section
+        className={`${
+          mobilePane === 'code' ? 'flex' : 'hidden'
+        } min-h-0 min-w-0 flex-1 flex-col gap-3 lg:flex`}
+      >
+        {/* Monaco needs a parent with a resolved height. On desktop `flex-1` supplies it
+            from the container's fixed height; below `lg` the container is auto-height, so
+            flex-grow has nothing to distribute and an explicit viewport height is the
+            only thing that gives the editor real space. */}
+        <div className="flex h-[62vh] min-h-[20rem] flex-1 flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:h-auto">
           <div className="flex flex-wrap items-center gap-2 border-b border-subtle px-3 py-2">
             <Dropdown options={LANGUAGES} value={language} onChange={setLanguage} className="w-44" align="left" />
             <Dropdown
@@ -476,7 +523,9 @@ export default function ProblemDetail() {
           )}
         </div>
 
-        <div className="max-h-[45%] shrink-0 overflow-y-auto rounded-xl border border-subtle bg-surface">
+        {/* `max-h-[45%]` needs a definite parent height to resolve against, which only
+            exists from `lg` up — hence the viewport-relative cap on mobile. */}
+        <div className="max-h-[50vh] shrink-0 overflow-y-auto rounded-xl border border-subtle bg-surface lg:max-h-[45%]">
           <ResultPanel
             mode={mode}
             running={busy}
@@ -499,6 +548,7 @@ export default function ProblemDetail() {
         description="This also permanently deletes every submission ever made against it — from every user, not just yours. This cannot be undone."
         confirmLabel="Delete problem"
       />
-    </div>
+      </div>
+    </>
   );
 }

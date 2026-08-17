@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../services/api';
-import { clearAuth, loadAuth, saveAuth, type StoredUser } from '../utils/authStorage';
+import { clearAuth, isRemembered, loadAuth, saveAuth, type StoredUser } from '../utils/authStorage';
 
 interface AuthContextValue {
   user: StoredUser | null;
@@ -25,13 +25,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string, remember = true) {
     const res = await api.post('/auth/login', { email, password });
-    saveAuth({ user: res.data.user, token: res.data.accessToken }, remember);
+    saveAuth(
+      {
+        user: res.data.user,
+        token: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      },
+      remember,
+    );
     setUser(res.data.user);
   }
 
   async function register(name: string, email: string, password: string) {
     const res = await api.post('/auth/register', { name, email, password });
-    saveAuth({ user: res.data.user, token: res.data.accessToken }, true);
+    saveAuth(
+      {
+        user: res.data.user,
+        token: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+      },
+      true,
+    );
     setUser(res.data.user);
   }
 
@@ -45,8 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!stored) return;
     const res = await api.get('/profile');
     const next = { ...stored.user, ...res.data };
+    // Spread `stored` first so the refresh token survives — rebuilding this object by
+    // hand dropped it, which logged the user out 15 minutes after any profile edit.
     // Persist to whichever store the session already uses, so a "remember me" choice sticks.
-    saveAuth({ user: next, token: stored.token }, localStorage.getItem('codeforge_auth') !== null);
+    saveAuth({ ...stored, user: next }, isRemembered());
     setUser(next);
   }
 

@@ -10,6 +10,12 @@ export interface StoredUser {
 export interface StoredAuth {
   user: StoredUser;
   token: string;
+  /**
+   * Access tokens live 15 minutes (`JWT_EXPIRES_IN`), so without this a session died
+   * a quarter of an hour after signing in and dumped the user back on /login. Absent
+   * on sessions stored before refresh was wired up — those get one clean re-login.
+   */
+  refreshToken?: string;
 }
 
 const KEY = 'codeforge_auth';
@@ -39,4 +45,12 @@ export function saveAuth(auth: StoredAuth, remember = true): void {
 export function clearAuth(): void {
   localStorage.removeItem(KEY);
   sessionStorage.removeItem(KEY);
+}
+
+/**
+ * Which store the live session is in, so re-saving after a token refresh does not
+ * silently promote a "don't remember me" session into localStorage.
+ */
+export function isRemembered(): boolean {
+  return localStorage.getItem(KEY) !== null;
 }
