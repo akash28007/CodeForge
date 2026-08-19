@@ -462,7 +462,7 @@ export default function ProblemDetail() {
             from the container's fixed height; below `lg` the container is auto-height, so
             flex-grow has nothing to distribute and an explicit viewport height is the
             only thing that gives the editor real space. */}
-        <div className="flex h-[62vh] min-h-[20rem] flex-1 flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:h-auto">
+        <div className="flex h-[62vh] min-h-[20rem] flex-none flex-col overflow-hidden rounded-xl border border-subtle bg-surface lg:h-auto lg:flex-1">
           <div className="flex flex-wrap items-center gap-2 border-b border-subtle px-3 py-2">
             <Dropdown options={LANGUAGES} value={language} onChange={setLanguage} className="w-44" align="left" />
             <Dropdown
@@ -480,7 +480,11 @@ export default function ProblemDetail() {
             </button>
           </div>
 
-          <div className="min-h-0 flex-1">
+          {/* `flex-col` below `lg` so the textarea can fill this box via `flex-1`.
+              A percentage height cannot resolve against a flex-sized parent here, which
+              left the textarea at its default rows="2". Restored to `block` at `lg`, so
+              Monaco's own sizing on desktop is untouched. */}
+          <div className="flex min-h-0 flex-1 flex-col lg:block">
             <CodeEditor
               value={code}
               onChange={setCode}

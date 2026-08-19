@@ -79,7 +79,10 @@ function TouchEditor({
       wrap="off"
       aria-label="Code editor"
       style={{ fontSize: Math.max(fontSize, MIN_TOUCH_FONT), tabSize: 4 }}
-      className="h-full w-full resize-none overflow-auto bg-transparent px-3 py-3 font-mono leading-relaxed text-primary outline-none"
+      // `flex-1` is what actually gives this its height — the parent is a flex column
+      // on touch layouts precisely because `h-full` cannot resolve there. `h-full` is
+      // kept for the block-layout case (a touch tablet at >=lg), where flex-1 is inert.
+      className="h-full min-h-0 w-full flex-1 resize-none overflow-auto bg-transparent px-3 py-3 font-mono leading-relaxed text-primary outline-none"
     />
   );
 }
