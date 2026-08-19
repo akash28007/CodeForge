@@ -18,7 +18,8 @@ rebuild are complete.
 | Site | https://code-forge-navy.vercel.app |
 | API | https://3-130-208-15.sslip.io (Caddy, Let's Encrypt) |
 | VM | AWS EC2 `t3.micro`, us-east-2c, `i-0ac3adb1ba42b0efa`, Elastic IP `3.130.208.15` |
-| DB / Redis | Neon + Upstash, both us-east-2 |
+| DB | Neon, us-east-2 |
+| Redis | **Docker on the VM** (`codeforge-redis`), localhost-only. Upstash burned its 500k/month free tier in 7 days on idle BullMQ polling — ~5M commands/month with no users. See `docs/DEPLOYMENT.md` §2 |
 | Admin | `akashy07v@gmail.com` |
 
 Verified end to end against the live stack: register → submit → **ACCEPTED 4/4, 401 ms**

@@ -11,7 +11,7 @@ on account verification.
 |---|---|---|
 | Client (Vite SPA) | **Vercel** | — |
 | Postgres | **Neon** | — |
-| Redis (BullMQ) | **Upstash** | — |
+| Redis (BullMQ) | **Docker, on the same VM** | Upstash bills per command and BullMQ polls constantly. Measured on the live box: ~5M commands/month with *zero* traffic, against a 500k free tier. See §2. |
 | API **+ judge worker** | **A real VM** — Oracle Always Free, or AWS EC2 | The judge shells out to the real `docker` CLI. Render, Railway and Fly give a container, not a Docker *daemon*, so it cannot run there without gutting the sandbox. |
 | HTTPS | **Caddy + sslip.io** | A browser refuses to let an HTTPS page call a plain-HTTP API. Without a certificate the deployed site silently fails every request. |
 
@@ -37,13 +37,52 @@ miserable thing to debug.
 
 The string must end with `?sslmode=require`.
 
-## 2. Upstash (Redis)
+## 2. Redis — run it on the VM, not on Upstash
 
-1. Create a database at [upstash.com](https://upstash.com), same region again.
-2. Copy the **`rediss://`** URL (two s's — TLS).
+Run it in Docker on the same box, after step 4 has installed Docker:
 
-`REDIS_URL` takes priority over `REDIS_HOST`/`REDIS_PORT`; see
-`src/queue/redis-connection.util.ts`.
+```bash
+docker run -d --name codeforge-redis --restart unless-stopped \
+  -p 127.0.0.1:6379:6379 \
+  -v codeforge-redis-data:/data \
+  redis:7-alpine \
+  redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy noeviction
+```
+
+Then in `server/.env` set `REDIS_HOST=127.0.0.1` and `REDIS_PORT=6379`, and make sure
+`REDIS_URL` is **absent or commented out** — it takes priority over the host/port pair
+(`src/queue/redis-connection.util.ts`), so leaving it set silently keeps using the old
+target.
+
+Three flags are load-bearing:
+
+- **`-p 127.0.0.1:6379`**, not `-p 6379`. Binding to all interfaces would expose an
+  unauthenticated Redis to the internet. Docker publishes ports by writing iptables
+  rules that bypass the cloud firewall, so a security group with 6379 closed does *not*
+  save you here.
+- **`--maxmemory-policy noeviction`**. The default policy evicts keys under pressure,
+  and those keys are queued jobs — submissions would vanish with no error anywhere.
+- **`--appendonly yes`** with a named volume, so jobs in flight survive a restart.
+
+### Why not Upstash
+
+Upstash was used first and hit its free ceiling in **exactly seven days** with no real
+users: 531k commands against a 500k/month limit, on 4 KB of stored data and 0 B of
+bandwidth. That shape — enormous command count, nothing stored, nothing transferred —
+is the signature of polling, not traffic.
+
+BullMQ holds blocking connections that re-issue continuously, runs a stalled-job check
+every 30s, polls a delayed-job marker, and opens a `QueueEvents` stream for `POST /run`.
+Measured at idle on the live VM: **117 commands/minute, ≈5M/month** — ten times the free
+tier before a single user shows up. On Redis you own, those commands cost nothing.
+
+This is not a tuning problem. Fitting 5M into 500k needs a 10× cut while keeping the
+queue responsive, which BullMQ will not give you.
+
+The failure is also silent from the outside: the API stays up, the site loads, and
+submissions simply sit at PENDING forever, because the judge cannot read its queue.
+The only visible sign is `ReplyError: ERR max requests limit exceeded` in
+`journalctl -u codeforge`.
 
 ## 3. The VM
 
@@ -390,7 +429,8 @@ Work through this in a browser, not just with curl:
 | "Mixed content" blocked | `VITE_API_URL` is `http://`; it must be the HTTPS Caddy address |
 | 443 times out, `curl localhost:4000` works | Oracle's two firewalls — see step 3 |
 | `migrate deploy` fails on a prepared statement | Using Neon's **pooled** string; switch to the direct one |
-| Submissions stay PENDING forever | `codeforge-executor` image missing, or the `ubuntu` user is not in the `docker` group |
+| Submissions stay PENDING forever | `codeforge-executor` image missing, the `ubuntu` user is not in the `docker` group, or Redis is refusing commands — check `journalctl -u codeforge` for `max requests limit exceeded` |
+| `ERR max requests limit exceeded` | Hosted Redis quota gone. BullMQ polls ~5M commands/month at idle; run Redis on the VM instead (§2) |
 | Judge returns infrastructure errors | Docker daemon not running: `sudo systemctl status docker` |
 | Uploaded images vanish after a redeploy | `UPLOAD_DIR` still points inside the repo |
 | 429s during normal use | Expected: 100 req/min globally, 10/min on login and register |
