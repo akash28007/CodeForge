@@ -2,11 +2,14 @@ import { useRef, useState } from 'react';
 import { api } from '../services/api';
 import { getErrorMessage } from '../utils/errors';
 import Avatar from './ui/Avatar';
+import AvatarCropper from './AvatarCropper';
 import Button from './ui/Button';
 import { useToast } from './ui/Toast';
 
 /** Mirrors `MAX_UPLOAD_BYTES` on the server. */
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+/** Ceiling on the file we will decode for cropping, well above the upload cap. */
+const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 
 interface AvatarPickerProps {
   name: string;
@@ -27,6 +30,13 @@ export default function AvatarPicker({ name, avatarUrl, onChange, size = 'xl' }:
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  /** The picked file, held for cropping. Nothing is sent until the crop is confirmed. */
+  const [pending, setPending] = useState<File | null>(null);
+
+  /** Frees the file input so re-picking the same file still fires `change`. */
+  function resetInput() {
+    if (inputRef.current) inputRef.current.value = '';
+  }
 
   async function upload(file: File) {
     // A courtesy check so an oversized file fails instantly rather than after a slow
@@ -42,13 +52,13 @@ export default function AvatarPicker({ name, avatarUrl, onChange, size = 'xl' }:
       body.append('file', file);
       const res = await api.post<{ avatarUrl: string | null }>('/profile/avatar', body);
       onChange(res.data.avatarUrl);
+      setPending(null);
       toast.push('success', 'Profile picture updated');
     } catch (err) {
       toast.push('error', 'Could not upload that picture', getErrorMessage(err, 'Please try again.'));
     } finally {
       setBusy(false);
-      // Clearing the input means re-picking the same file still fires `change`.
-      if (inputRef.current) inputRef.current.value = '';
+      resetInput();
     }
   }
 
@@ -66,21 +76,31 @@ export default function AvatarPicker({ name, avatarUrl, onChange, size = 'xl' }:
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <Avatar name={name} src={avatarUrl} size={size} />
-      <div className="flex min-w-0 flex-col gap-2">
+    <div>
+      <div className="flex flex-wrap items-center gap-4">
+        <Avatar name={name} src={avatarUrl} size={size} />
+        <div className="flex min-w-0 flex-col gap-2">
         <span className="text-sm font-medium text-secondary">Profile picture</span>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" loading={busy} onClick={() => inputRef.current?.click()}>
+          {/* `type="button"` is now Button's default, but stated here too: this control
+              lives inside a <form> in the Edit Profile dialog, and an implicit submit is
+              precisely what made it appear to hang. */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            loading={busy}
+            onClick={() => inputRef.current?.click()}
+          >
             {avatarUrl ? 'Change picture' : 'Upload picture'}
           </Button>
           {avatarUrl && (
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove()}>
+            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void remove()}>
               Remove
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted">PNG, JPEG, GIF or WebP · up to 2 MB. Square images look best.</p>
+        <p className="text-xs text-muted">PNG, JPEG, GIF or WebP · up to 2 MB. You choose the crop.</p>
         <input
           ref={inputRef}
           type="file"
@@ -88,10 +108,31 @@ export default function AvatarPicker({ name, avatarUrl, onChange, size = 'xl' }:
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) void upload(file);
+            if (!file) return;
+            // Guards the *source*, not the upload: cropping re-encodes to a 512px JPEG,
+            // so the 2 MB server cap is never the binding constraint any more. This
+            // exists so a 40 MP photo cannot lock the tab up while it decodes.
+            if (file.size > MAX_SOURCE_BYTES) {
+              toast.push('error', 'That image is too large', 'Pick a picture under 20 MB.');
+              resetInput();
+              return;
+            }
+            // Straight to the crop dialog — nothing is uploaded until it is confirmed.
+            setPending(file);
           }}
-        />
+          />
+        </div>
       </div>
+
+      <AvatarCropper
+        file={pending}
+        busy={busy}
+        onCancel={() => {
+          setPending(null);
+          resetInput();
+        }}
+        onConfirm={(cropped) => void upload(cropped)}
+      />
     </div>
   );
 }

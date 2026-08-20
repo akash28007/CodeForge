@@ -42,12 +42,26 @@ export default function Button({
   className = '',
   children,
   disabled,
+  /**
+   * Defaults to `button`, not the HTML default of `submit`.
+   *
+   * A bare <button> inside a <form> submits it. That silently broke the avatar
+   * uploader in the Edit Profile dialog: "Change picture" opened the file dialog *and*
+   * submitted the form underneath, so the picker appeared to hang. The same control
+   * worked in Settings purely because it happens to sit outside the form there.
+   *
+   * Every form in the app names its submit button explicitly, and the four that do not
+   * contain only a SearchInput and rely on Enter-key implicit submission, which needs
+   * no button at all — so nothing depends on the old default.
+   */
+  type = 'button',
   ...rest
 }: ButtonProps) {
   return (
     <button
       className={buttonClass(variant, size, className)}
       disabled={disabled || loading}
+      type={type}
       {...rest}
     >
       {loading ? <IconLoader className="w-4 h-4" /> : icon}
